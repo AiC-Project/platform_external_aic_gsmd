@@ -10,36 +10,55 @@
 ** GNU General Public License for more details.
 */
 #include "remote_call.h"
-#include "android/utils/bufprint.h"
-#include "android/utils/debug.h"
 #include "sysdeps.h"
 #include "gsm.h"
-#include "android/android.h"
-#include "sockets.h"
 #include <stdlib.h>
+#include <stdarg.h>
 
-#define  DEBUG  1
 
-#if 1
+static char*
+vbufprint( char*        buffer,
+           char*        buffer_end,
+           const char*  fmt,
+           va_list      args )
+{
+    int  len = vsnprintf( buffer, buffer_end - buffer, fmt, args );
+    if (len < 0 || buffer+len >= buffer_end) {
+        if (buffer < buffer_end)
+            buffer_end[-1] = 0;
+        return buffer_end;
+    }
+    return buffer + len;
+}
+
+static char*
+bufprint(char*  buffer, char*  end, const char*  fmt, ... )
+{
+    va_list  args;
+    char*    result;
+
+    va_start(args, fmt);
+    result = vbufprint(buffer, end, fmt, args);
+    va_end(args);
+    return  result;
+}
+
+#define  DEBUG  0
+
+#if 0
 #  define  D_ACTIVE  VERBOSE_CHECK(modem)
 #else
 #  define  D_ACTIVE  DEBUG
 #endif
 
-#if 1
+#if 0
 #  define  S_ACTIVE  VERBOSE_CHECK(socket)
 #else
 #  define  S_ACTIVE  DEBUG
 #endif
 
-#if DEBUG
-#  include <stdio.h>
-#  define  D(...)   do { if (D_ACTIVE) fprintf( stderr, __VA_ARGS__ ); } while (0)
-#  define  S(...)   do { if (S_ACTIVE) fprintf( stderr, __VA_ARGS__ ); } while (0)
-#else
 #  define  D(...)   ((void)0)
 #  define  S(...)   ((void)0)
-#endif
 
 /** By convention, remote numbers are the console ports, i.e. 5554, 5556, etc...
  **/

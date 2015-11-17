@@ -11,6 +11,9 @@
 */
 #ifndef _REMOTE_CALL_H
 #define _REMOTE_CALL_H
+#include <stdarg.h>
+#include <string.h>
+#include <stdio.h>
 
 #include "sms.h"
 

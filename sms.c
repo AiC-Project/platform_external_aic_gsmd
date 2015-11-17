@@ -15,9 +15,9 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define  DEBUG  1
+#define  DEBUG  0
 
-#if 1
+#if 0
 #  include "android/utils/debug.h"
 #  define  D_ACTIVE  VERBOSE_CHECK(modem)
 #else

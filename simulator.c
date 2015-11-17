@@ -183,7 +183,7 @@ int  main( void )
     SysChannel  server;
 
     sys_main_init();
-    modem = amodem_create( NULL, NULL );
+    modem = amodem_create( 1, NULL, NULL );
 
     server = sys_channel_create_tcp_server( port );
     printf( "GSM simulator listening on local port %d\n", port );

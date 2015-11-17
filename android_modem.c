@@ -9,37 +9,33 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ** GNU General Public License for more details.
 */
-#include "android/android.h"
+#include "config.h"
+
 #include "android_modem.h"
-#include "android/config.h"
-#include "android/config/config.h"
-#include "android/snapshot.h"
-#include "android/utils/debug.h"
-#include "android/utils/timezone.h"
-#include "android/utils/system.h"
-#include "android/utils/bufprint.h"
-#include "android/utils/path.h"
-#include "hw/hw.h"
-#include "qemu-common.h"
 #include "sim_card.h"
 #include "sysdeps.h"
 #include <memory.h>
 #include <stdarg.h>
 #include <time.h>
 #include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include "sms.h"
 #include "remote_call.h"
 
-#define  DEBUG  1
+#define MAX_PATH 255
 
-#if  1
+#define bufprint(...) ((int) 1)
+#define  DEBUG  0
+
+#if  0
 #  define  D_ACTIVE  VERBOSE_CHECK(modem)
 #else
 #  define  D_ACTIVE  DEBUG
 #endif
 
-#if 1
+#if 0
 #  define  R_ACTIVE  VERBOSE_CHECK(radio)
 #else
 #  define  R_ACTIVE  DEBUG
@@ -67,6 +63,7 @@
  *   different name and MCC/MNC
  */
 
+#define STRINGIFY(x) #x
 #define  OPERATOR_HOME_INDEX 0
 #define  OPERATOR_HOME_MCC   310
 #define  OPERATOR_HOME_MNC   260
@@ -525,51 +522,12 @@ static void amodem_free_call( AModem  modem, AVoiceCall  call );
 
 #define MODEM_DEV_STATE_SAVE_VERSION 1
 
-static void  android_modem_state_save(QEMUFile *f, void  *opaque)
+static void  android_modem_state_save(void  *opaque)
 {
-    AModem modem = opaque;
-
-    // TODO: save more than just calls and call_count - rssi, power, etc.
-
-    qemu_put_byte(f, modem->call_count);
-
-    int nn;
-    for (nn = modem->call_count - 1; nn >= 0; nn--) {
-      AVoiceCall  vcall = modem->calls + nn;
-      // Note: not saving timers or remote calls.
-      ACall       call  = &vcall->call;
-      qemu_put_byte( f, call->dir );
-      qemu_put_byte( f, call->state );
-      qemu_put_byte( f, call->mode );
-      qemu_put_be32( f, call->multi );
-      qemu_put_buffer( f, (uint8_t *)call->number, A_CALL_NUMBER_MAX_SIZE+1 );
-    }
 }
 
-static int  android_modem_state_load(QEMUFile *f, void  *opaque, int version_id)
+static int  android_modem_state_load(void  *opaque, int version_id)
 {
-    if (version_id != MODEM_DEV_STATE_SAVE_VERSION)
-      return -1;
-
-    AModem modem = opaque;
-
-    // In case there are timers or remote calls.
-    int nn;
-    for (nn = modem->call_count - 1; nn >= 0; nn--) {
-      amodem_free_call( modem, modem->calls + nn);
-    }
-
-    int call_count = qemu_get_byte(f);
-    for (nn = call_count; nn > 0; nn--) {
-      AVoiceCall vcall = amodem_alloc_call( modem );
-      ACall      call  = &vcall->call;
-      call->dir   = qemu_get_byte( f );
-      call->state = qemu_get_byte( f );
-      call->mode  = qemu_get_byte( f );
-      call->multi = qemu_get_be32( f );
-      qemu_get_buffer( f, (uint8_t *)call->number, A_CALL_NUMBER_MAX_SIZE+1 );
-    }
-
     return 0; // >=0 Happy
 }
 
@@ -584,7 +542,7 @@ amodem_create( int  base_port, AModemUnsolFunc  unsol_func, void*  unsol_opaque 
     char *end = start + sizeof(nvfname);
 
     modem->base_port    = base_port;
-    start = bufprint_config_file( start, end, "modem-nv-ram-" );
+    start = 0;
     start = bufprint( start, end, "%d", modem->base_port );
     modem->nvram_config_filename = strdup( nvfname );
 
@@ -596,10 +554,6 @@ amodem_create( int  base_port, AModemUnsolFunc  unsol_func, void*  unsol_opaque 
     modem->sim = asimcard_create(base_port);
 
     sys_main_init();
-    register_savevm( "android_modem", 0, MODEM_DEV_STATE_SAVE_VERSION,
-                      android_modem_state_save,
-                      android_modem_state_load, modem);
-
     aconfig_save_file( modem->nvram_config, modem->nvram_config_filename );
     return  modem;
 }
@@ -1909,7 +1863,7 @@ amodem_addTimeUpdate( AModem  modem )
     */
     {
         char*  end = tzname + sizeof(tzname);
-        char*  p = bufprint_zoneinfo_timezone( tzname, end );
+        char*  p = 0;
         if (p >= end)
             strcpy(tzname, "Unknown/Unknown");
 
