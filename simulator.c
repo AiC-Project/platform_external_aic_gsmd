@@ -89,10 +89,10 @@ client_handle_line( Client  client, const char*  cmd )
     client_append( client, "\r", 1 );
 }
 
+// XXX: Replace with protobuf
 static void
 cmd_client_handle_line( Client  client, const char*  cmd )
 {
-  puts("test");
     char command[10];
     bzero(command, 10);
     char* p, *args;
@@ -105,26 +105,32 @@ cmd_client_handle_line( Client  client, const char*  cmd )
     if (strncmp(cmd, "SMS", 3) == 0)
     {
       p = strchr(p+1, ' ');
-      printf("SMS: %s %d\n", args, (p-args));
       if (sms_address_from_str(&sender, args, p - args) < 0) {
-        puts("fail addr");
         return;
       }
       p += 1;
       int textlen = strlen(p);
       textlen = sms_utf8_from_message_str(p, textlen, (unsigned char*) p, textlen);
       if (textlen < 0) {
-        puts("fail text");
         return;
       }
 
-      pdus = smspdu_create_deliver_utf8((cbytes_t)p, textlen, &sender, NULL);
+      pdus = smspdu_create_deliver_utf8( (unsigned char*) p, textlen, &sender, NULL);
       int nn;
       for (nn = 0; pdus[nn] != NULL; nn++) {
-        puts("delivered");
         amodem_receive_sms(modem, pdus[nn]);
       }
       smspdu_free_list(pdus);
+    }
+    else if (!strncmp("NET", cmd, 3))
+    {
+      const char* net_type = p+1;
+      amodem_set_data_network_type(modem, android_parse_network_type(net_type));
+    }
+    else if (!strncmp("CALL", cmd, 4))
+    {
+      const char* number = p+1;
+      amodem_add_inbound_call(modem, number);
     }
 }
 
@@ -287,7 +293,7 @@ cmd_accept_func( void*  _server, int  events )
 
 
 
-void func(void* opaque, char* truc) {
+void func(void* opaque, const char* truc) {
   printf("Unsol: %p %s", opaque, truc);
   sys_channel_write(s_handler, truc, strlen(truc));
 }
@@ -304,7 +310,6 @@ int  main( void )
     server = sys_channel_create_tcp_server( port );
     cmd_server = sys_channel_create_tcp_server( port  + 1);
     printf( "GSM simulator listening on local port %d, %d %p %p\n", port, port + 1, server, cmd_server);
-
 
     modem = amodem_create( 1, func, server);
 

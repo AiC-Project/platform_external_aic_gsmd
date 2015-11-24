@@ -155,8 +155,12 @@ android_parse_network_type( const char*  speed )
 
     for (nn = 0; types[nn].name; nn++) {
         if (!strcmp(speed, types[nn].name))
+        {
+            printf("%s %d\n", speed, types[nn].type);
             return types[nn].type;
+        }
     }
+    printf("NOT FOUND: '%s'\n", speed);
     /* not found, be conservative */
     return A_DATA_NETWORK_GPRS;
 }
@@ -487,15 +491,15 @@ amodem_reset( AModem  modem )
     modem->area_code = -1;
     modem->cell_id   = -1;
 
-    strcpy( modem->operators[0].name[0], OPERATOR_HOME_NAME );
-    strcpy( modem->operators[0].name[1], OPERATOR_HOME_NAME );
-    strcpy( modem->operators[0].name[2], OPERATOR_HOME_MCCMNC );
+    strncpy( modem->operators[0].name[0], OPERATOR_HOME_NAME, 16 );
+    strncpy( modem->operators[0].name[1], OPERATOR_HOME_NAME, 16 );
+    strncpy( modem->operators[0].name[2], OPERATOR_HOME_MCCMNC, 16 );
 
     modem->operators[0].status        = A_STATUS_AVAILABLE;
 
-    strcpy( modem->operators[1].name[0], OPERATOR_ROAMING_NAME );
-    strcpy( modem->operators[1].name[1], OPERATOR_ROAMING_NAME );
-    strcpy( modem->operators[1].name[2], OPERATOR_ROAMING_MCCMNC );
+    strncpy( modem->operators[1].name[0], OPERATOR_ROAMING_NAME, 16 );
+    strncpy( modem->operators[1].name[1], OPERATOR_ROAMING_NAME, 16 );
+    strncpy( modem->operators[1].name[2], OPERATOR_ROAMING_MCCMNC, 16 );
 
     modem->operators[1].status        = A_STATUS_AVAILABLE;
 
@@ -520,30 +524,15 @@ amodem_reset( AModem  modem )
 static AVoiceCall amodem_alloc_call( AModem   modem );
 static void amodem_free_call( AModem  modem, AVoiceCall  call );
 
-#define MODEM_DEV_STATE_SAVE_VERSION 1
-
-static void  android_modem_state_save(void  *opaque)
-{
-}
-
-static int  android_modem_state_load(void  *opaque, int version_id)
-{
-    return 0; // >=0 Happy
-}
-
 static AModemRec   _android_modem[1];
 
 AModem
 amodem_create( int  base_port, AModemUnsolFunc  unsol_func, void*  unsol_opaque )
 {
     AModem  modem = _android_modem;
-    char nvfname[MAX_PATH];
-    char *start = nvfname;
-    char *end = start + sizeof(nvfname);
+    char nvfname[] = "modem_config";
 
     modem->base_port    = base_port;
-    start = 0;
-    start = bufprint( start, end, "%d", modem->base_port );
     modem->nvram_config_filename = strdup( nvfname );
 
     amodem_reset( modem );

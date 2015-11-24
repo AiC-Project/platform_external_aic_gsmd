@@ -16,6 +16,7 @@
 #include <errno.h>
 #include <memory.h>
 #include <stdio.h>
+#include <sys/time.h>
 #ifndef HAVE_WINSOCK
 #include <fcntl.h>
 #include <sys/socket.h>

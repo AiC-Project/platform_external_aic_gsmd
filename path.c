@@ -514,13 +514,9 @@ path_get_absolute( const char* path )
 APosixStatus
 path_empty_file( const char*  path )
 {
-#ifdef _WIN32
-    int  fd = _creat( path, S_IWRITE );
-#else
     /* on Unix, only allow the owner to read/write, since the file *
      * may contain some personal data we don't want to see exposed */
     int  fd = creat(path, S_IRUSR | S_IWUSR);
-#endif
     if (fd >= 0) {
         close(fd);
         return 0;
@@ -550,7 +546,7 @@ path_copy_file( const char*  dest, const char*  source )
     fs = _open(source, _O_RDONLY |  _O_BINARY);
 #else
     fd = creat(dest, S_IRUSR | S_IWUSR);
-    fs = open(source, S_IREAD);
+    fs = open(source, S_IRUSR);
 #endif
     if (fs >= 0 && fd >= 0) {
         char buf[4096];
@@ -583,20 +579,7 @@ path_copy_file( const char*  dest, const char*  source )
 APosixStatus
 path_delete_file( const char*  path )
 {
-#ifdef _WIN32
-    int  ret = _unlink( path );
-    if (ret == -1 && errno == EACCES) {
-        /* a first call to _unlink will fail if the file is set read-only */
-        /* we can however try to change its mode first and call unlink    */
-        /* again...                                                       */
-        ret = _chmod( path, _S_IREAD | _S_IWRITE );
-        if (ret == 0)
-            ret = _unlink( path );
-    }
-    return ret;
-#else
-    return  unlink(path);
-#endif
+  return  unlink(path);
 }
 
 
@@ -656,8 +639,6 @@ path_search_exec( const char* filename )
 {
     const char* sysPath = getenv("PATH");
     char        temp[PATH_MAX];
-    int         count;
-    int         slen;
     const char* p;
 
     /* If the file contains a directory separator, don't search */
@@ -682,8 +663,6 @@ path_search_exec( const char* filename )
      * Items are separated by DIR_SEP, and two successive separators
      * correspond to an empty item that will be ignored.
      * Also compute the required string storage length. */
-    count   = 0;
-    slen    = 0;
     p       = sysPath;
 
     while (*p) {
