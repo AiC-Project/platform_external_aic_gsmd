@@ -19,6 +19,7 @@
 #define  DEFAULT_PORT  6703
 
 static AModem  modem;
+static SysChannel s_handler;
 
 typedef struct {
     SysChannel   channel;
@@ -86,6 +87,45 @@ client_handle_line( Client  client, const char*  cmd )
     dump_line( answer, ">> " );
     client_append( client, answer, -1 );
     client_append( client, "\r", 1 );
+}
+
+static void
+cmd_client_handle_line( Client  client, const char*  cmd )
+{
+  puts("test");
+    char command[10];
+    bzero(command, 10);
+    char* p, *args;
+
+    p = strchr((const char*) cmd, ' ');
+    args = p+1;
+
+    SmsPDU* pdus;
+    SmsAddressRec sender;
+    if (strncmp(cmd, "SMS", 3) == 0)
+    {
+      p = strchr(p+1, ' ');
+      printf("SMS: %s %d\n", args, (p-args));
+      if (sms_address_from_str(&sender, args, p - args) < 0) {
+        puts("fail addr");
+        return;
+      }
+      p += 1;
+      int textlen = strlen(p);
+      textlen = sms_utf8_from_message_str(p, textlen, (unsigned char*) p, textlen);
+      if (textlen < 0) {
+        puts("fail text");
+        return;
+      }
+
+      pdus = smspdu_create_deliver_utf8((cbytes_t)p, textlen, &sender, NULL);
+      int nn;
+      for (nn = 0; pdus[nn] != NULL; nn++) {
+        puts("delivered");
+        amodem_receive_sms(modem, pdus[nn]);
+      }
+      smspdu_free_list(pdus);
+    }
 }
 
 static void
@@ -174,21 +214,102 @@ accept_func( void*  _server, int  events )
 
     events=events;
     sys_channel_on( handler, SYS_EVENT_READ, client_handler, client );
+    s_handler = handler;
 }
+
+static void
+cmd_client_handler( void* _client, int  events )
+{
+    Client  client = _client;
+
+    if (events & SYS_EVENT_READ) {
+        int  ret;
+        /* read into buffer, one character at a time */
+        ret = sys_channel_read( client->channel, client->in_buff + client->in_pos, 1 );
+        if (ret != 1) {
+            fprintf(stderr, "client %p could not read byte, result = %d, error: %s\n",
+                    client, ret, strerror(errno) );
+            goto ExitCmdClient;
+        }
+        if (client->in_buff[client->in_pos] == '\r' ||
+            client->in_buff[client->in_pos] == '\n' ) {
+            const char*  cmd = client->in_buff;
+            client->in_buff[client->in_pos] = 0;
+
+            if (client->in_pos > 0) {
+                cmd_client_handle_line( client, cmd );
+                client->in_pos = 0;
+            }
+        } else
+            client->in_pos += 1;
+    }
+
+    if (events & SYS_EVENT_WRITE) {
+        int  ret;
+        /* write from output buffer, one char at a time */
+        ret = sys_channel_write( client->channel, client->out_buff + client->out_pos, 1 );
+        if (ret != 1) {
+            fprintf(stderr, "client %p could not write byte, result = %d, error: %s\n",
+                    client, ret, strerror(errno) );
+            goto ExitCmdClient;
+        }
+        client->out_pos += 1;
+        if (client->out_pos == client->out_size) {
+            client->out_size = 0;
+            client->out_pos  = 0;
+            /* we don't need to write */
+            sys_channel_on( client->channel, SYS_EVENT_READ, client_handler, client );
+        }
+    }
+    return;
+
+ExitCmdClient:
+    printf( "client %p exiting\n", client );
+    client_free( client );
+}
+
+
+static void
+cmd_accept_func( void*  _server, int  events )
+{
+    SysChannel  server  = _server;
+    SysChannel  handler;
+    Client      client;
+
+    printf( "connection accepted for server channel, getting handler socket\n" );
+    handler = sys_channel_create_tcp_handler( server );
+    client  = client_alloc( handler );
+    printf( "got one. created client %p\n", client );
+
+    events=events;
+    sys_channel_on( handler, SYS_EVENT_READ, cmd_client_handler, client );
+}
+
+
+
+void func(void* opaque, char* truc) {
+  printf("Unsol: %p %s", opaque, truc);
+  sys_channel_write(s_handler, truc, strlen(truc));
+}
+
 
 
 int  main( void )
 {
     int  port = DEFAULT_PORT;
-    SysChannel  server;
+    SysChannel  server, cmd_server;
 
     sys_main_init();
-    modem = amodem_create( 1, NULL, NULL );
 
     server = sys_channel_create_tcp_server( port );
-    printf( "GSM simulator listening on local port %d\n", port );
+    cmd_server = sys_channel_create_tcp_server( port  + 1);
+    printf( "GSM simulator listening on local port %d, %d %p %p\n", port, port + 1, server, cmd_server);
+
+
+    modem = amodem_create( 1, func, server);
 
     sys_channel_on( server, SYS_EVENT_READ, accept_func, server );
+    sys_channel_on( cmd_server, SYS_EVENT_READ, cmd_accept_func, cmd_server );
     sys_main_loop();
     printf( "GSM simulator exiting\n" );
     return 0;

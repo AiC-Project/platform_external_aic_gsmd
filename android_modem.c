@@ -553,7 +553,6 @@ amodem_create( int  base_port, AModemUnsolFunc  unsol_func, void*  unsol_opaque 
 
     modem->sim = asimcard_create(base_port);
 
-    sys_main_init();
     aconfig_save_file( modem->nvram_config, modem->nvram_config_filename );
     return  modem;
 }

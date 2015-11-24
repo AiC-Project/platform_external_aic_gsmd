@@ -292,12 +292,18 @@ sms_address_from_str( SmsAddress  address, const char*  src, int  srclen )
     address->toa = 0x81;
 
     if (src >= end)
+    {
+      puts("srv > end");
         return -1;
+    }
 
     if ( src[0] == '+' ) {
         address->toa = 0x91;
         if (++src == end)
+        {
+          puts("src = end");
             goto Fail;
+        }
     }
 
     memset( address->data, 0, sizeof(address->data) );
@@ -309,7 +315,10 @@ sms_address_from_str( SmsAddress  address, const char*  src, int  srclen )
 
         if ( (unsigned)c >= 10 ||
               data >= address->data + sizeof(address->data) )
+        {
+          puts("size 2 big");
             goto Fail;
+        }
 
         data[0] |= c << shift;
         len   += 1;

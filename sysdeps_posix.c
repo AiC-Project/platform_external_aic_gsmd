@@ -96,8 +96,8 @@ typedef struct SysChannelRec_ {
 
 
 /*** channel allocation ***/
-#define  SYS_EVENT_MAX     3
-#define  SYS_MAX_CHANNELS  16
+#define  SYS_EVENT_MAX     50
+#define  SYS_MAX_CHANNELS  500
 
 static SysChannelRec  _s_channels0[ SYS_MAX_CHANNELS ];
 static SysChannel     _s_free_channels;
@@ -174,7 +174,7 @@ sys_channel_activate( SysChannel  channel )
 
 
 /* queue of pending channels */
-static SysQueueRec    _s_pending_channels[1];
+static SysQueueRec    _s_pending_channels[16];
 
 
 static void
@@ -183,7 +183,9 @@ sys_init_channels( void )
     int  nn;
 
     for (nn = 0; nn < SYS_MAX_CHANNELS-1; nn++)
+    {
         _s_channels0[nn].next = &_s_channels0[nn+1];
+    }
     _s_free_channels = &_s_channels0[0];
 
     for (nn = 0; nn < SYS_EVENT_MAX; nn++)
