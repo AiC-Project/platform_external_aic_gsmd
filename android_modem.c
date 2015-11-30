@@ -68,15 +68,13 @@
 #define  OPERATOR_HOME_MCC   310
 #define  OPERATOR_HOME_MNC   260
 #define  OPERATOR_HOME_NAME  "Android"
-#define  OPERATOR_HOME_MCCMNC  STRINGIFY(OPERATOR_HOME_MCC) \
-                               STRINGIFY(OPERATOR_HOME_MNC)
+#define  OPERATOR_HOME_MCCMNC  "310260"
 
 #define  OPERATOR_ROAMING_INDEX 1
 #define  OPERATOR_ROAMING_MCC   310
 #define  OPERATOR_ROAMING_MNC   295
 #define  OPERATOR_ROAMING_NAME  "TelKila"
-#define  OPERATOR_ROAMING_MCCMNC  STRINGIFY(OPERATOR_ROAMING_MCC) \
-                                  STRINGIFY(OPERATOR_ROAMING_MNC)
+#define  OPERATOR_ROAMING_MCCMNC  "310295"
 
 static const char* _amodem_switch_technology(AModem modem, AModemTech newtech, int32_t newpreferred);
 static int _amodem_set_cdma_subscription_source( AModem modem, ACdmaSubscriptionSource ss);
