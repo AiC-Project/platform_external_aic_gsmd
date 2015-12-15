@@ -2178,9 +2178,12 @@ handleSignalStrength( const char*  cmd, AModem  modem )
     // TODO: return 99 if modem->radio_state==A_RADIO_STATE_OFF, once radio_state is in snapshot.
     int rssi = modem->rssi;
     int ber = modem->ber;
-    rssi = (0 > rssi && rssi > 31) ? 99 : rssi ;
-    ber = (0 > ber && ber > 7 ) ? 99 : ber;
-    amodem_add_line( modem, "+CSQ: %i,%i,85,130,90,6,4,25,9,50,68,12\r\n", rssi, ber );
+    int dbm = 53;
+    int ecio = 125;
+    int snr = 8;
+    rssi = (0 > rssi || rssi > 31) ? 99 : rssi ;
+    ber = (0 > ber || ber > 7 ) ? 99 : ber;
+    amodem_add_line( modem, "+CSQ: %i,%i,%i,%i,%i,%i,%i,%i,%i,50,68,12\r\n", rssi, ber, dbm, ecio, dbm, ecio, snr,  rssi, dbm );
     return amodem_end_line( modem );
 }
 
