@@ -64,21 +64,25 @@ typedef enum {
 
 typedef enum {
     A_DATA_NETWORK_UNKNOWN = 0,
-    A_DATA_NETWORK_GPRS,
-    A_DATA_NETWORK_EDGE,
-    A_DATA_NETWORK_UMTS,
-    A_DATA_NETWORK_LTE,
-    A_DATA_NETWORK_CDMA1X,
-    A_DATA_NETWORK_EVDO, // TODO: Should REV0, REVA and REVB be added?
+    A_DATA_NETWORK_GPRS = 1,
+    A_DATA_NETWORK_EDGE = 2,
+    A_DATA_NETWORK_UMTS = 3,
+    A_DATA_NETWORK_CDMA1X = 4,
+    A_DATA_NETWORK_EVDO = 7, // TODO: Should REV0, REVA and REVB be added?
+    A_DATA_NETWORK_HSDPA = 9,
+    A_DATA_NETWORK_HSUPA = 10,
+    A_DATA_NETWORK_HSPA = 11,
+    A_DATA_NETWORK_LTE = 14,
+    A_DATA_NETWORK_HSPAP = 15,
 } ADataNetworkType;
 // TODO: Merge the usage of these two structs and rename ADataNetworkType
 typedef enum {
     A_TECH_GSM = 0,
-    A_TECH_WCDMA,
-    A_TECH_CDMA,
-    A_TECH_EVDO,
-    A_TECH_LTE,
-    A_TECH_UNKNOWN // This must always be the last value in the enum
+    A_TECH_WCDMA = 0x01,
+    A_TECH_CDMA = 0x04,
+    A_TECH_EVDO = 0x08,
+    A_TECH_LTE = 0x10,
+    A_TECH_UNKNOWN //Setting / This must always be the last value in the enum
 } AModemTech;
 
 typedef enum {

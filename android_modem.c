@@ -142,11 +142,13 @@ android_parse_network_type( const char*  speed )
         { "gprs",  A_DATA_NETWORK_GPRS },
         { "edge",  A_DATA_NETWORK_EDGE },
         { "umts",  A_DATA_NETWORK_UMTS },
-        { "hsdpa", A_DATA_NETWORK_UMTS },  /* not handled yet by Android GSM framework */
+        { "hsdpa", A_DATA_NETWORK_HSDPA },  /* not handled yet by Android GSM framework */
+        { "hsupa", A_DATA_NETWORK_HSUPA },  /* not handled yet by Android GSM framework */
         { "full",  A_DATA_NETWORK_UMTS },
         { "lte",   A_DATA_NETWORK_LTE },
         { "cdma",  A_DATA_NETWORK_CDMA1X },
         { "evdo",  A_DATA_NETWORK_EVDO },
+        { "hspa",  A_DATA_NETWORK_HSPA },
         { NULL, 0 }
     };
     int  nn;
@@ -513,7 +515,7 @@ amodem_reset( AModem  modem )
         modem->technology = aconfig_int( modem->nvram_config, NV_MODEM_TECHNOLOGY, A_TECH_GSM );
     }
     // Support GSM, WCDMA, CDMA, EvDo
-    modem->preferred_mask = amodem_nvram_get_int( modem, NV_PREFERRED_MODE, 0x0f );
+    modem->preferred_mask = amodem_nvram_get_int( modem, NV_PREFERRED_MODE, 0x1f );
 
     modem->subscription_source = _amodem_get_cdma_subscription_source( modem );
     modem->roaming_pref = _amodem_get_cdma_roaming_preference( modem );
@@ -671,8 +673,12 @@ tech_from_network_type( ADataNetworkType type )
             return A_TECH_LTE;
         case A_DATA_NETWORK_CDMA1X:
         case A_DATA_NETWORK_EVDO:
+        case A_DATA_NETWORK_HSPA:
+        case A_DATA_NETWORK_HSDPA:
+        case A_DATA_NETWORK_HSUPA:
+        case A_DATA_NETWORK_HSPAP:
             return A_TECH_CDMA;
-        case A_DATA_NETWORK_UNKNOWN:
+        default:
             return A_TECH_UNKNOWN;
     }
     return A_TECH_UNKNOWN;
@@ -1152,7 +1158,7 @@ handleTech( const char*  cmd, AModem  modem )
     }
     amodem_begin_line( modem );
     if (!strcmp( cmd, "=?")) {
-        return amodem_printf( modem, "+CTEC: 0,1,2,3" );
+        return amodem_printf( modem, "+CTEC: 0,1,2,3,4" );
     }
     else if (cmd[0] == '=') {
         switch (cmd[1]) {
@@ -1160,6 +1166,7 @@ handleTech( const char*  cmd, AModem  modem )
             case '1':
             case '2':
             case '3':
+            case '4':
                 havenewtech = 1;
                 newtech = cmd[1] - '0';
                 cmd += 1;
@@ -2302,7 +2309,7 @@ static const struct {
     { "+CFUN=0", NULL, handleRadioPower },
     { "+CFUN=1", NULL, handleRadioPower },
 
-    { "+CTEC=?", "+CTEC: 0,1,2,3", NULL }, /* Query available Techs */
+    { "+CTEC=?", "+CTEC: 0,1,2,3,4", NULL }, /* Query available Techs */
     { "!+CTEC", NULL, handleTech }, /* Set/get current Technology and preferred mode */
 
     { "+WRMP=?", "+WRMP: 0,1,2", NULL }, /* Query Roam Preference */
