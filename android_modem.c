@@ -1987,9 +1987,19 @@ handleQueryPDPContext( const char* cmd, AModem modem )
 }
 
 static const char*
+handleEndPDPContext( const char*  cmd, AModem  modem )
+{
+    /* XXX: TODO: handle PDP start appropriately */
+    int status = system("netcfg eth2 down");
+    return NULL;
+}
+
+
+static const char*
 handleStartPDPContext( const char*  cmd, AModem  modem )
 {
     /* XXX: TODO: handle PDP start appropriately */
+    int status = system("netcfg eth2 dhcp");
     return NULL;
 }
 
@@ -2362,6 +2372,7 @@ static const struct {
     { "+CGQMIN=1", NULL, NULL },
     { "+CGEREP=1,0", NULL, NULL },
     { "+CGACT=1,0", NULL, NULL },
+    { "+CGACT=0,0", NULL, handleEndPDPContext },
     { "D*99***1#", NULL, handleStartPDPContext },
 
     /* see requestDial() */
