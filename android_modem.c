@@ -27,26 +27,29 @@
 #define MAX_PATH 255
 
 #define bufprint(...) ((int) 1)
-#define  DEBUG  0
 
-#if  0
-#  define  D_ACTIVE  VERBOSE_CHECK(modem)
-#else
-#  define  D_ACTIVE  DEBUG
-#endif
+#define  DEBUG  1
 
-#if 0
-#  define  R_ACTIVE  VERBOSE_CHECK(radio)
-#else
-#  define  R_ACTIVE  DEBUG
-#endif
+#ifndef HOST_BUILD
+
+#define LOG_TAG "GSMd"
+#include <utils/Log.h>
 
 #if DEBUG
-#  define  D(...)   do { if (D_ACTIVE) fprintf( stderr, __VA_ARGS__ ); } while (0)
-#  define  R(...)   do { if (R_ACTIVE) fprintf( stderr, __VA_ARGS__ ); } while (0)
+#  define  D(...)   do { RLOGD(__VA_ARGS__ ); } while (0)
+#  define  R(...)   do { RLOGD(__VA_ARGS__ ); } while (0)
 #else
 #  define  D(...)   ((void)0)
 #  define  R(...)   ((void)0)
+#endif
+#else
+#if DEBUG
+#  define  D(...)   do { fprintf( stderr, __VA_ARGS__ ); } while (0)
+#  define  R(...)   do { fprintf( stderr, __VA_ARGS__ ); } while (0)
+#else
+#  define  D(...)   ((void)0)
+#  define  R(...)   ((void)0)
+#endif
 #endif
 
 #define  CALL_DELAY_DIAL   1000
@@ -156,11 +159,9 @@ android_parse_network_type( const char*  speed )
     for (nn = 0; types[nn].name; nn++) {
         if (!strcmp(speed, types[nn].name))
         {
-            printf("%s %d\n", speed, types[nn].type);
             return types[nn].type;
         }
     }
-    printf("NOT FOUND: '%s'\n", speed);
     /* not found, be conservative */
     return A_DATA_NETWORK_GPRS;
 }

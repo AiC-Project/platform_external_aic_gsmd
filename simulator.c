@@ -9,12 +9,14 @@
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ** GNU General Public License for more details.
 */
+
 #include "android_modem.h"
 #include "sysdeps.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+
 
 #define  DEFAULT_PORT  6703
 
