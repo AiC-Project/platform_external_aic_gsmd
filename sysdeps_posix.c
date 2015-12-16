@@ -121,11 +121,7 @@ static void
 sys_channel_free( SysChannel  channel )
 {
     if (channel->fd >= 0) {
-#ifdef _WIN32
-        shutdown( channel->fd, SD_BOTH );
-#else
         shutdown( channel->fd, SHUT_RDWR );
-#endif
         close(channel->fd);
         channel->fd = -1;
     }

@@ -29,27 +29,11 @@ typedef int APosixStatus;
 #endif
 
 /* define  PATH_SEP as a string containing the directory separateor */
-#ifdef _WIN32
-#  define  PATH_SEP   "\\"
-#  define  PATH_SEP_C '\\'
-#else
 #  define  PATH_SEP   "/"
 #  define  PATH_SEP_C '/'
-#endif
 
-/* get MAX_PATH, note that PATH_MAX is set to 260 on Windows for
- * stupid backwards-compatibility reason, though any 32-bit version
- * of the OS handles much much longer paths
- */
-#ifdef _WIN32
-#  undef   MAX_PATH
-#  define  MAX_PATH    1024
-#  undef   PATH_MAX
-#  define  PATH_MAX    MAX_PATH
-#else
 #  include <limits.h>
 #  define  MAX_PATH    PATH_MAX
-#endif
 
 /* checks that a given file exists */
 extern ABool  path_exists( const char*  path );

@@ -365,9 +365,6 @@ writer_init( Writer*  w, const char*  fn )
     if (w->fd < 0)
         return -1;
 
-#ifdef _WIN32
-    _setmode( w->fd, _O_BINARY );
-#endif
     return 0;
 }
 

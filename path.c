@@ -17,22 +17,10 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#ifdef _WIN32
-#include <process.h>
-#include <shlobj.h>
-#include <tlhelp32.h>
-#include <io.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdint.h>
-#include <limits.h>
-#include <winbase.h>
-#else
 #include <unistd.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <signal.h>
-#endif
 
 #define  D(...)
 #define ASTRDUP strdup
@@ -40,11 +28,7 @@
 #define android_alloc malloc
 
 #ifndef CHECKED
-#  ifdef _WIN32
-#    define   CHECKED(ret, call)    (ret) = (call)
-#  else
 #    define   CHECKED(ret, call)    do { (ret) = (call); } while ((ret) < 0 && errno == EINTR)
-#  endif
 #endif
 
 /** PATH HANDLING ROUTINES
@@ -56,11 +40,7 @@
 static __inline__ int
 ispathsep(int  c)
 {
-#ifdef _WIN32
-    return (c == '/' || c == '\\');
-#else
-    return (c == '/');
-#endif
+  return (c == '/');
 }
 
 char*
@@ -296,14 +276,9 @@ path_can_exec( const char* path )
 APosixStatus
 path_mkdir( const char*  path, int  mode )
 {
-#ifdef _WIN32
-    (void)mode;
-    return _mkdir(path);
-#else
     int  ret;
     CHECKED(ret, mkdir(path, mode));
     return ret;
-#endif
 }
 
 static APosixStatus
@@ -383,33 +358,6 @@ path_mkdir_if_needed( const char*  path, int  mode )
 APosixStatus
 path_get_size( const char*  path, uint64_t  *psize )
 {
-#ifdef _WIN32
-    /* avoid _stat64 which is only defined in MSVCRT.DLL, not CRTDLL.DLL */
-    /* do not use OpenFile() because it has strange search behaviour that could */
-    /* result in getting the size of a different file */
-    LARGE_INTEGER  size;
-    HANDLE  file = CreateFile( /* lpFilename */        path,
-                               /* dwDesiredAccess */   GENERIC_READ,
-                               /* dwSharedMode */     FILE_SHARE_READ|FILE_SHARE_WRITE,
-                               /* lpSecurityAttributes */  NULL,
-                               /* dwCreationDisposition */ OPEN_EXISTING,
-                               /* dwFlagsAndAttributes */  0,
-                               /* hTemplateFile */      NULL );
-    if (file == INVALID_HANDLE_VALUE) {
-        /* ok, just to play fair */
-        errno = ENOENT;
-        return -1;
-    }
-    if (!GetFileSizeEx(file, &size)) {
-        /* maybe we tried to get the size of a pipe or something like that ? */
-        *psize = 0;
-    }
-    else {
-        *psize = (uint64_t) size.QuadPart;
-    }
-    CloseHandle(file);
-    return 0;
-#else
     int    ret;
     struct stat  st;
 
@@ -418,31 +366,13 @@ path_get_size( const char*  path, uint64_t  *psize )
         *psize = (uint64_t) st.st_size;
     }
     return ret;
-#endif
 }
 
 
 ABool
 path_is_absolute( const char*  path )
 {
-#ifdef _WIN32
-    if (path == NULL)
-        return 0;
-
-    if (path[0] == '/' || path[0] == '\\')
-        return 1;
-
-    /* 'C:' is always considered to be absolute
-     * even if used with a relative path like C:foo which
-     * is different from C:\foo
-     */
-    if (path[0] != 0 && path[1] == ':')
-        return 1;
-
-    return 0;
-#else
     return (path != NULL && path[0] == '/');
-#endif
 }
 
 char*
@@ -452,28 +382,6 @@ path_get_absolute( const char* path )
         return ASTRDUP(path);
     }
 
-#ifdef _WIN32
-    {
-        char* result;
-        int   pathLen    = strlen(path);
-        int   currentLen = GetCurrentDirectory(0, NULL);
-
-        if (currentLen <= 0) {
-            /* Could not get size of working directory. something is
-             * really fishy here, return a simple copy */
-            return ASTRDUP(path);
-        }
-        result = malloc(currentLen + pathLen + 2);
-
-        GetCurrentDirectory(currentLen+1, result);
-        if (currentLen == 0 || result[currentLen-1] != '\\') {
-            result[currentLen++] = '\\';
-        }
-        memcpy(result + currentLen, path, pathLen+1);
-
-        return result;
-    }
-#else
     {
         int   pathLen    = strlen(path);
         char  currentDir[PATH_MAX];
@@ -498,7 +406,6 @@ path_get_absolute( const char* path )
 
         return result;
     }
-#endif
 }
 
 /** OTHER FILE UTILITIES
@@ -541,13 +448,8 @@ path_copy_file( const char*  dest, const char*  source )
         return -1;
     }
 
-#ifdef _WIN32
-    fd = _open(dest, _O_RDWR | _O_BINARY);
-    fs = _open(source, _O_RDONLY |  _O_BINARY);
-#else
     fd = creat(dest, S_IRUSR | S_IWUSR);
     fs = open(source, S_IRUSR);
-#endif
     if (fs >= 0 && fd >= 0) {
         char buf[4096];
         ssize_t total = 0;
@@ -627,12 +529,7 @@ path_load_file(const char *fn, size_t  *pSize)
 
     return NULL;
 }
-
-#ifdef _WIN32
-#  define DIR_SEP  ';'
-#else
 #  define DIR_SEP  ':'
-#endif
 
 char*
 path_search_exec( const char* filename )
@@ -642,11 +539,7 @@ path_search_exec( const char* filename )
     const char* p;
 
     /* If the file contains a directory separator, don't search */
-#ifdef _WIN32
-    if (strchr(filename, '/') != NULL || strchr(filename, '\\') != NULL) {
-#else
     if (strchr(filename, '/') != NULL) {
-#endif
         if (path_exists(filename)) {
             return strdup(filename);
         } else {
