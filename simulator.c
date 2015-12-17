@@ -141,15 +141,10 @@ cmd_client_handle_line( Client  client, const char*  cmd )
     }
     else if (!strncmp("SIGNAL", cmd, 6))
     {
-      printf("%s\n", cmd);
-      const char* rssi = p+1;
-      const char* ber = strchr(p+1, ' ');
-      int rssi_i = atoi(rssi);
-      int ber_i = atoi(ber);
-      printf("%d %d\n", rssi_i, ber_i);
-      if (ber == NULL)
-        ber_i = 99;
-      amodem_set_signal_strength(modem, rssi_i, ber_i);
+      int signal = atoi(p + 1);
+      if (signal < 0 || signal > 4)
+        signal = 3;
+      amodem_set_signal_strength(modem, signal);
     }
 }
 
