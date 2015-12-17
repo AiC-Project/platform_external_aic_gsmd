@@ -432,8 +432,11 @@ amodem_nvram_get_int( AModem modem, const char *nvname, int defval)
     newvalue = strdup(strval);
     if (!newvalue) {
         newvalue = "";
+        aconfig_set(modem->nvram_config, nvname, newvalue);
+    } else {
+        aconfig_set(modem->nvram_config, nvname, newvalue);
+        free(newvalue);
     }
-    aconfig_set(modem->nvram_config, nvname, newvalue);
 
     return value;
 }
