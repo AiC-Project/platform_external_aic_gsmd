@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#define S_ACTIVE 0
 
 static char*
 vbufprint( char*        buffer,
@@ -43,22 +44,9 @@ bufprint(char*  buffer, char*  end, const char*  fmt, ... )
     return  result;
 }
 
-#define  DEBUG  0
+#include "log.h"
 
-#if 0
-#  define  D_ACTIVE  VERBOSE_CHECK(modem)
-#else
-#  define  D_ACTIVE  DEBUG
-#endif
-
-#if 0
-#  define  S_ACTIVE  VERBOSE_CHECK(socket)
-#else
-#  define  S_ACTIVE  DEBUG
-#endif
-
-#  define  D(...)   ((void)0)
-#  define  S(...)   ((void)0)
+#define S(...) ((void) 0)
 
 /** By convention, remote numbers are the console ports, i.e. 5554, 5556, etc...
  **/

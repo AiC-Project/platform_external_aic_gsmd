@@ -15,20 +15,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#define  DEBUG  0
-
-#if 0
-#  include "android/utils/debug.h"
-#  define  D_ACTIVE  VERBOSE_CHECK(modem)
-#else
-#  define  D_ACTIVE  DEBUG
-#endif
-
-#if DEBUG
-#  define  D(...)  VERBOSE_PRINT(modem,__VA_ARGS__)
-#else
-#  define  D(...)  ((void)0)
-#endif
+#include "log.h"
 
 /* maximum number of data bytes in a SMS data message */
 #define  MAX_USER_DATA_BYTES   140
@@ -38,6 +25,8 @@
 
 /* size of the user data header in bytes */
 #define  USER_DATA_HEADER_SIZE   6
+
+#define D_ACTIVE 0
 
 /** MESSAGE TEXT
  **/

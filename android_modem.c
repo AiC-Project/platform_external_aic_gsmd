@@ -24,33 +24,11 @@
 #include "sms.h"
 #include "remote_call.h"
 
+#include "log.h"
+
 #define MAX_PATH 255
 
 #define bufprint(...) ((int) 1)
-
-#define  DEBUG  1
-
-#ifndef HOST_BUILD
-
-#define LOG_TAG "GSMd"
-#include <utils/Log.h>
-
-#if DEBUG
-#  define  D(...)   do { RLOGD(__VA_ARGS__ ); } while (0)
-#  define  R(...)   do { RLOGD(__VA_ARGS__ ); } while (0)
-#else
-#  define  D(...)   ((void)0)
-#  define  R(...)   ((void)0)
-#endif
-#else
-#if DEBUG
-#  define  D(...)   do { fprintf( stderr, __VA_ARGS__ ); } while (0)
-#  define  R(...)   do { fprintf( stderr, __VA_ARGS__ ); } while (0)
-#else
-#  define  D(...)   ((void)0)
-#  define  R(...)   ((void)0)
-#endif
-#endif
 
 #define  CALL_DELAY_DIAL   1000
 #define  CALL_DELAY_ALERT  1000
