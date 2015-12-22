@@ -868,7 +868,7 @@ sms_get_text_utf8( cbytes_t        *pcur,
 
         if (rope != NULL)
         {
-            bytes_t  dst = gsm_rope_reserve( rope, count );
+            bytes_t  dst = (bytes_t) gsm_rope_reserve( rope, count );
             if (dst != NULL)
                 utf8_from_gsm7( cur, 0, len, dst );
         }
@@ -880,7 +880,7 @@ sms_get_text_utf8( cbytes_t        *pcur,
 
         if (rope != NULL)
         {
-            bytes_t  dst = gsm_rope_reserve( rope, count );
+            bytes_t  dst = (bytes_t) gsm_rope_reserve( rope, count );
             if (dst != NULL)
                 ucs2_to_utf8( cur, len/2, dst );
         }
@@ -1154,7 +1154,7 @@ gsm_rope_add_sms_deliver_pdu( GsmRope                 rope,
 
         count = (count*7+pad+7)/8;  /* convert to byte count */
 
-        dst = gsm_rope_reserve( rope, count );
+        dst = (bytes_t) gsm_rope_reserve( rope, count );
         if (dst != NULL) {
             utf8_to_gsm7( utf8, utf8len, dst, pad );
         }
@@ -1173,7 +1173,7 @@ gsm_rope_add_sms_deliver_pdu( GsmRope                 rope,
             gsm_rope_add_c( rope, count*2 );
 
         gsm_rope_add_c( rope, count*2 );
-        dst = gsm_rope_reserve( rope, count*2 );
+        dst = (bytes_t) gsm_rope_reserve( rope, count*2 );
         if (dst != NULL) {
             utf8_to_ucs2( utf8, utf8len, dst );
         }
@@ -1195,7 +1195,7 @@ smspdu_create_deliver( cbytes_t               utf8,
     GsmRopeRec  rope[1];
     int         size;
 
-    p = calloc( sizeof(*p), 1 );
+    p = (SmsPDU) calloc( sizeof(*p), 1 );
     if (!p) goto Exit;
 
     gsm_rope_init( rope );
@@ -1278,7 +1278,7 @@ smspdu_create_deliver_utf8( const unsigned char*   utf8,
     if (leftover > 0)
         num_pdus += 1;
 
-    list = calloc( sizeof(SmsPDU), num_pdus + 1 );
+    list = (SmsPDURec**) calloc( sizeof(SmsPDU), num_pdus + 1 );
     if (list == NULL)
         return NULL;
 
@@ -1322,10 +1322,10 @@ smspdu_create_from_hex( const char*  hex, int  hexlen )
     SmsPDU    p;
     cbytes_t  data;
 
-    p = calloc( sizeof(*p), 1 );
+    p = (SmsPDU) calloc( sizeof(*p), 1 );
     if (!p) goto Exit;
 
-    p->base = malloc( (hexlen+1)/2 );
+    p->base = (bytes_t) malloc( (hexlen+1)/2 );
     if (p->base == NULL) {
         free(p);
         p = NULL;
@@ -1412,7 +1412,7 @@ sms_fragment_free( SmsFragment  frag )
 static SmsFragment
 sms_fragment_alloc( SmsReceiver  rec, const SmsAddressRec*  from, int   ref, int  max )
 {
-    SmsFragment  frag = calloc(sizeof(*frag) + max*sizeof(SmsPDU), 1 );
+    SmsFragment  frag = (SmsFragment) calloc(sizeof(*frag) + max*sizeof(SmsPDU), 1 );
 
     if (frag != NULL) {
         frag->from[0] = from[0];
@@ -1428,7 +1428,7 @@ sms_fragment_alloc( SmsReceiver  rec, const SmsAddressRec*  from, int   ref, int
 
 SmsReceiver   sms_receiver_create( void )
 {
-    SmsReceiver  rec = calloc(sizeof(*rec),1);
+    SmsReceiver  rec = (SmsReceiver) calloc(sizeof(*rec),1);
     return rec;
 }
 
@@ -1626,7 +1626,7 @@ sms_receiver_create_deliver( SmsReceiver  rec, int  index, const SmsAddressRec* 
     if (utf8len < 0)
         goto Exit;
 
-    utf8 = malloc( utf8len + 1 );
+    utf8 = (bytes_t) malloc( utf8len + 1 );
     if (utf8 == NULL) {
         D( "%s: not enough memory to allocate %d bytes\n",
            __FUNCTION__, utf8len+1 );

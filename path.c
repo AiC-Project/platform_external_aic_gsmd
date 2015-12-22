@@ -80,7 +80,7 @@ path_parent( const char*  path, int  levels )
     Next:
         end = base - 1;
     }
-    result = malloc( end-path+1 );
+    result = (char*) malloc( end-path+1 );
     if (result != NULL) {
         memcpy( result, path, end-path );
         result[end-path] = 0;
@@ -92,7 +92,7 @@ static char*
 substring_dup( const char*  start, const char*  end )
 {
     int    len    = end - start;
-    char*  result = android_alloc(len+1);
+    char*  result = (char*) android_alloc(len+1);
     memcpy(result, start, len);
     result[len] = 0;
     return result;
@@ -396,7 +396,7 @@ path_get_absolute( const char* path )
 
         /* Make a new path with <current-path>/<path> */
         currentLen = strlen(currentDir);
-        result     = malloc(currentLen + pathLen + 2);
+        result     = (char*) malloc(currentLen + pathLen + 2);
 
         memcpy(result, currentDir, currentLen);
         if (currentLen == 0 || result[currentLen-1] != '/') {
@@ -485,7 +485,7 @@ path_delete_file( const char*  path )
 }
 
 
-void*
+char*
 path_load_file(const char *fn, size_t  *pSize)
 {
     char*  data;
@@ -559,7 +559,7 @@ path_search_exec( const char* filename )
     p       = sysPath;
 
     while (*p) {
-        char* p2 = strchr(p, DIR_SEP);
+        char* p2 = (char*) strchr(p, DIR_SEP);
         int   len;
         if (p2 == NULL) {
             len = strlen(p);

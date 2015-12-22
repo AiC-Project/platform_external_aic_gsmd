@@ -149,7 +149,7 @@ extern APosixStatus   path_delete_file( const char*  path );
  * note that this actually zero-terminates the file for convenience.
  * In case of failure, NULL is returned and the error code is in errno
  */
-extern void*          path_load_file( const char*  path, size_t  *pSize );
+extern char*          path_load_file( const char*  path, size_t  *pSize );
 
 /* */
 

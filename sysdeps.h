@@ -71,6 +71,7 @@ extern void       sys_timer_set( SysTimer  timer, SysTime  when, SysCallback   c
 extern void       sys_timer_unset( SysTimer  timer );
 extern void       sys_timer_destroy( SysTimer  timer );
 
+extern int channel_get_fd(SysChannel s);
 extern long long  sys_time_ms( void );
 
 /** main loop (may return immediately on some platform)

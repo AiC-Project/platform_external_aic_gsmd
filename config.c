@@ -409,7 +409,7 @@ writer_done( Writer*  w )
 static void
 writer_margin( Writer*  w, int  margin)
 {
-    static const char  spaces[10] = "          ";
+    static const char  spaces[11] = "          ";
     while (margin >= 10) {
         writer_write(w,spaces,10);
         margin -= 10;

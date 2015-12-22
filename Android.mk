@@ -8,7 +8,7 @@ LOCAL_C_INCLUDES += device/aicVM/goby/gsmd/
 LOCAL_CFLAGS := -O2
 
 LOCAL_MODULE := gsmd
-LOCAL_SHARED_LIBRARIES := liblog libcutils
+LOCAL_SHARED_LIBRARIES := liblog libcutils libstlport_static libprotobuf-cpp-2.3.0-lite libprotobuf-cpp-2.3.0-full
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_EXECUTABLE)

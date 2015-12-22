@@ -237,7 +237,7 @@ gsm_rope_init_alloc( GsmRope  rope, int  count )
     rope->error = 0;
 
     if (count > 0) {
-        rope->data = calloc( count, 1 );
+        rope->data = (bytes_t) calloc( count, 1 );
         rope->max  = count;
 
         if (rope->data == NULL) {
@@ -271,7 +271,7 @@ gsm_rope_done_acquire( GsmRope  rope, int  *psize )
 
     *psize = rope->pos;
     if (result == rope->data0) {
-        result = malloc(  rope->pos );
+        result = (bytes_t) malloc(  rope->pos );
         if (result != NULL)
             memcpy( result, rope->data, rope->pos );
     }
@@ -291,7 +291,7 @@ gsm_rope_ensure( GsmRope  rope, int  new_count )
         while (new_max < new_count) {
             new_max += (new_max >> 1) + 4;
         }
-        new_data = realloc( old_data, new_max );
+        new_data = (bytes_t) realloc( old_data, new_max );
         if (new_data == NULL) {
             rope->error = 1;
             return -1;

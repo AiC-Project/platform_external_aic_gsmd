@@ -16,33 +16,7 @@
 #include <stdarg.h>
 
 #define S_ACTIVE 0
-
-static char*
-vbufprint( char*        buffer,
-           char*        buffer_end,
-           const char*  fmt,
-           va_list      args )
-{
-    int  len = vsnprintf( buffer, buffer_end - buffer, fmt, args );
-    if (len < 0 || buffer+len >= buffer_end) {
-        if (buffer < buffer_end)
-            buffer_end[-1] = 0;
-        return buffer_end;
-    }
-    return buffer + len;
-}
-
-static char*
-bufprint(char*  buffer, char*  end, const char*  fmt, ... )
-{
-    va_list  args;
-    char*    result;
-
-    va_start(args, fmt);
-    result = vbufprint(buffer, end, fmt, args);
-    va_end(args);
-    return  result;
-}
+#define bufprint(...) ((char*)0)
 
 #include "log.h"
 
@@ -164,8 +138,7 @@ static void  remote_call_event( void*  opaque, int  events );  /* forward */
 static RemoteCall
 remote_call_alloc( RemoteCallType  type, int  to_port, int  from_port )
 {
-    RemoteCall  rcall    = calloc( sizeof(*rcall), 1 );
-    int         from_num = remote_number_from_port(from_port);
+    RemoteCall  rcall    = (RemoteCall) calloc( sizeof(*rcall), 1 );
 
     if (rcall != NULL) {
         char  *p, *end;
@@ -236,7 +209,7 @@ remote_call_set_sms_pdu( RemoteCall  call,
     msg2len = 32 + smspdu_to_hex( pdu, NULL, 0 );
     if (msg2len > call->buff_size) {
         char*  old_buff = call->buff == call->buff0 ? NULL : call->buff;
-        char*  new_buff = realloc( old_buff, msg2len );
+        char*  new_buff = (char*) realloc( old_buff, msg2len );
         if (new_buff == NULL) {
             D("%s: not enough memory to alloc %d bytes", __FUNCTION__, msg2len);
             return -1;
@@ -275,7 +248,7 @@ remote_call_add( RemoteCall   call,
 static void
 remote_call_event( void*  opaque, int  events )
 {
-    RemoteCall  call = opaque;
+    RemoteCall  call = (RemoteCall) opaque;
 
     S("%s: called for call (%d,%d), events=%02x\n", __FUNCTION__,
        call->from_port, call->to_port, events);

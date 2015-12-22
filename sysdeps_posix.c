@@ -96,6 +96,10 @@ typedef struct SysChannelRec_ {
 } SysChannelRec;
 
 
+int channel_get_fd(SysChannel s) {
+  return s->fd;
+}
+
 /*** channel allocation ***/
 #define  SYS_EVENT_MAX     50
 #define  SYS_MAX_CHANNELS  500
@@ -231,7 +235,7 @@ sys_channel_on( SysChannel          channel,
 int
 sys_channel_read( SysChannel  channel, void*  buffer, int  size )
 {
-    char*  buff = buffer;
+    char*  buff = (char*) buffer;
     int    count = 0;
 
     assert( !channel->closed );
@@ -256,7 +260,7 @@ sys_channel_read( SysChannel  channel, void*  buffer, int  size )
 int
 sys_channel_write( SysChannel  channel, const void*  buffer, int  size )
 {
-    const char*  buff = buffer;
+    const char*  buff = (const char*) buffer;
     int          count = 0;
 
     assert( !channel->closed );
@@ -516,11 +520,11 @@ int   sys_main_loop( void )
 
         sys_single_loop();
 
-        while ((timer = sys_queue_get( _s_pending_timers )) != NULL) {
+        while ((timer = (SysTimer) sys_queue_get( _s_pending_timers )) != NULL) {
             timer->callback( timer->opaque );
         }
 
-        while ((channel = sys_queue_get( _s_pending_channels )) != NULL) {
+        while ((channel = (SysChannel) sys_queue_get( _s_pending_channels )) != NULL) {
             int  events;
 
             channel->pending = 0;

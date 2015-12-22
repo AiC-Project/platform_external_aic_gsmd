@@ -99,12 +99,12 @@ extern AModemTech
 android_parse_modem_tech( const char * tech )
 {
     const struct { const char* name; AModemTech  tech; }  techs[] = {
-        { "gsm", A_TECH_GSM },
-        { "wcdma", A_TECH_WCDMA },
-        { "cdma", A_TECH_CDMA },
-        { "evdo", A_TECH_EVDO },
-        { "lte", A_TECH_LTE },
-        { NULL, 0 }
+        { "gsm",   (AModemTech) A_TECH_GSM },
+        { "wcdma", (AModemTech) A_TECH_WCDMA },
+        { "cdma",  (AModemTech) A_TECH_CDMA },
+        { "evdo",  (AModemTech) A_TECH_EVDO },
+        { "lte",   (AModemTech) A_TECH_LTE },
+        { NULL,    (AModemTech) 0 }
     };
     int  nn;
 
@@ -120,17 +120,17 @@ extern ADataNetworkType
 android_parse_network_type( const char*  speed )
 {
     const struct { const char* name; ADataNetworkType  type; }  types[] = {
-        { "gprs",  A_DATA_NETWORK_GPRS },
-        { "edge",  A_DATA_NETWORK_EDGE },
-        { "umts",  A_DATA_NETWORK_UMTS },
-        { "hsdpa", A_DATA_NETWORK_HSDPA },  /* not handled yet by Android GSM framework */
-        { "hsupa", A_DATA_NETWORK_HSUPA },  /* not handled yet by Android GSM framework */
-        { "full",  A_DATA_NETWORK_UMTS },
-        { "lte",   A_DATA_NETWORK_LTE },
-        { "cdma",  A_DATA_NETWORK_CDMA1X },
-        { "evdo",  A_DATA_NETWORK_EVDO },
-        { "hspa",  A_DATA_NETWORK_HSPA },
-        { NULL, 0 }
+        { "gprs",  (ADataNetworkType) A_DATA_NETWORK_GPRS },
+        { "edge",  (ADataNetworkType) A_DATA_NETWORK_EDGE },
+        { "umts",  (ADataNetworkType) A_DATA_NETWORK_UMTS },
+        { "hsdpa", (ADataNetworkType) A_DATA_NETWORK_HSDPA },  /* not handled yet by Android GSM framework */
+        { "hsupa", (ADataNetworkType) A_DATA_NETWORK_HSUPA },  /* not handled yet by Android GSM framework */
+        { "full",  (ADataNetworkType) A_DATA_NETWORK_UMTS },
+        { "lte",   (ADataNetworkType) A_DATA_NETWORK_LTE },
+        { "cdma",  (ADataNetworkType) A_DATA_NETWORK_CDMA1X },
+        { "evdo",  (ADataNetworkType) A_DATA_NETWORK_EVDO },
+        { "hspa",  (ADataNetworkType) A_DATA_NETWORK_HSPA },
+        { NULL,    (ADataNetworkType) 0 }
     };
     int  nn;
 
@@ -221,7 +221,7 @@ typedef struct _signal {
   int lte_timing;
 } signal_t;
 
-enum {
+typedef enum {
   NONE = 0,
   POOR = 1,
   MODERATE = 2,
@@ -255,7 +255,7 @@ typedef struct AModemRec_
     int           cell_id;
     int           base_port;
 
-    int signal;
+    signal_strength signal;
 
     /* SMS */
     int           wait_sms;
@@ -467,7 +467,7 @@ static ACdmaSubscriptionSource _amodem_get_cdma_subscription_source( AModem mode
        iss = A_SUBSCRIPTION_RUIM;
    }
 
-   return iss;
+   return (ACdmaSubscriptionSource) iss;
 }
 
 static ACdmaRoamingPref _amodem_get_cdma_roaming_preference( AModem modem )
@@ -478,7 +478,7 @@ static ACdmaRoamingPref _amodem_get_cdma_roaming_preference( AModem modem )
        rp = A_ROAMING_PREF_ANY;
    }
 
-   return rp;
+   return (ACdmaRoamingPref) rp;
 }
 
 static void
@@ -492,9 +492,9 @@ amodem_reset( AModem  modem )
 
     modem->signal = GOOD;
 
-    modem->oper_name_index     = amodem_nvram_get_int(modem, NV_OPER_NAME_INDEX, 2);
-    modem->oper_selection_mode = amodem_nvram_get_int(modem, NV_SELECTION_MODE, A_SELECTION_AUTOMATIC);
-    modem->oper_index          = amodem_nvram_get_int(modem, NV_OPER_INDEX, 0);
+    modem->oper_name_index     = (ANameIndex) amodem_nvram_get_int(modem, NV_OPER_NAME_INDEX, 2);
+    modem->oper_selection_mode = (AOperatorSelection) amodem_nvram_get_int(modem, NV_SELECTION_MODE, A_SELECTION_AUTOMATIC);
+    modem->oper_index          = (ANameIndex) amodem_nvram_get_int(modem, NV_OPER_INDEX, 0);
     modem->oper_count          = amodem_nvram_get_int(modem, NV_OPER_COUNT, 2);
     modem->in_emergency_mode   = amodem_nvram_get_int(modem, NV_IN_ECBM, 0);
     modem->prl_version         = amodem_nvram_get_int(modem, NV_PRL_VERSION, 0);
@@ -530,7 +530,7 @@ amodem_reset( AModem  modem )
     tmp = amodem_nvram_get_str( modem, NV_MODEM_TECHNOLOGY, "gsm" );
     modem->technology = android_parse_modem_tech( tmp );
     if (modem->technology == A_TECH_UNKNOWN) {
-        modem->technology = aconfig_int( modem->nvram_config, NV_MODEM_TECHNOLOGY, A_TECH_GSM );
+        modem->technology = (AModemTech) aconfig_int( modem->nvram_config, NV_MODEM_TECHNOLOGY, A_TECH_GSM );
     }
     // Support GSM, WCDMA, CDMA, EvDo
     modem->preferred_mask = amodem_nvram_get_int( modem, NV_PREFERRED_MODE, 0x1f );
@@ -908,7 +908,7 @@ amodem_find_call_by_number( AModem  modem, const char*  number )
 void
 amodem_set_signal_strength( AModem modem, int value)
 {
-    modem->signal = value;
+    modem->signal = (signal_strength) value;
 }
 
 static void
@@ -1125,7 +1125,7 @@ handleSubscriptionSource( const char*  cmd, AModem  modem )
             case '0':
             case '1':
                 newsource = (ACdmaSubscriptionSource)cmd[1] - '0';
-                _amodem_set_cdma_subscription_source( modem, newsource );
+                _amodem_set_cdma_subscription_source( modem, (ACdmaSubscriptionSource) newsource );
                 return amodem_printf( modem, "+CCSS: %d", modem->subscription_source );
                 break;
         }
@@ -1153,7 +1153,7 @@ handleRoamPref( const char * cmd, AModem modem )
          // Make sure the rest of the command is the number
          // (if *endptr is null, it means strtol processed the whole string as a number)
         if(endptr && !*endptr) {
-            modem->roaming_pref = roaming_pref;
+            modem->roaming_pref = (ACdmaRoamingPref) roaming_pref;
             aconfig_set( modem->nvram_config, NV_CDMA_ROAMING_PREF, cmd );
             aconfig_save_file( modem->nvram_config, modem->nvram_config_filename );
             return NULL;
@@ -1185,7 +1185,7 @@ handleTech( const char*  cmd, AModem  modem )
             case '3':
             case '4':
                 havenewtech = 1;
-                newtech = cmd[1] - '0';
+                newtech = (AModemTech) (cmd[1] - '0');
                 cmd += 1;
                 break;
         }
@@ -1508,7 +1508,7 @@ handleOperatorSelection( const char*  cmd, AModem  modem )
                     if ( (unsigned)format > 2 )
                         goto BadCommand;
 
-                    modem->oper_name_index = format;
+                    modem->oper_name_index = (ANameIndex) format;
                     return NULL;
                 }
             default:
@@ -1529,7 +1529,7 @@ handleRequestOperator( const char*  cmd, AModem  modem )
         return "+CME ERROR: 30";
 
     oper = modem->operators + modem->oper_index;
-    modem->oper_name_index = 2;
+    modem->oper_name_index = (ANameIndex) 2;
     return amodem_printf( modem, "+COPS: 0,0,\"%s\"\r"
                           "+COPS: 0,1,\"%s\"\r"
                           "+COPS: 0,2,\"%s\"",
@@ -2024,7 +2024,7 @@ handleStartPDPContext( const char*  cmd, AModem  modem )
 static void
 remote_voice_call_event( void*  _vcall, int  success )
 {
-    AVoiceCall  vcall = _vcall;
+    AVoiceCall  vcall = (AVoiceCall) _vcall;
     AModem      modem = vcall->modem;
 
     /* NOTE: success only means we could send the "gsm in new" command
@@ -2041,7 +2041,7 @@ remote_voice_call_event( void*  _vcall, int  success )
 static void
 voice_call_event( void*  _vcall )
 {
-    AVoiceCall  vcall = _vcall;
+    AVoiceCall  vcall = (AVoiceCall) _vcall;
     ACall       call  = &vcall->call;
 
     switch (call->state) {

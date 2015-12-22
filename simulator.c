@@ -16,12 +16,125 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <iostream>
 
+
+
+// Protobuff
+#include <google/protobuf/io/coded_stream.h>
+#include <google/protobuf/text_format.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+#include "sensors_packet.pb.h"
 
 #define  DEFAULT_PORT  6703
 
 static AModem  modem;
 static SysChannel s_handler;
+
+// XXX
+
+google::protobuf::uint32 read_header(char *buf)
+{
+  google::protobuf::uint32 size;
+  google::protobuf::io::ArrayInputStream ais(buf,4);
+  google::protobuf::io::CodedInputStream coded_input(&ais);
+  coded_input.ReadVarint32(&size);//Decode the HDR and get the size
+  return size;
+}
+
+
+
+void read_body(int csock, google::protobuf::uint32 size)
+{
+  int bytecount;
+  sensors_packet payload;
+  char buffer [size];//size of the payload and hdr
+  //Read the entire buffer including the hdr
+  if((bytecount = recv(csock, (void *)buffer, size, MSG_WAITALL))== -1){
+    fprintf(stderr, "Error receiving data %d\n", errno);
+  }
+  /*
+  //Assign ArrayInputStream with enough memory
+  google::protobuf::io::ArrayInputStream ais(buffer,size+4);
+  google::protobuf::io::CodedInputStream coded_input(&ais);
+  //Read an unsigned integer with Varint encoding, truncating to 32 bits.
+  coded_input.ReadVarint32(&size);
+  //After the message's length is read, PushLimit() is used to prevent the CodedInputStream
+  //from reading beyond that length.Limits are used when parsing length-delimited
+  //embedded messages
+  google::protobuf::io::CodedInputStream::Limit msgLimit = coded_input.PushLimit(size);
+  //De-Serialize
+  payload.ParseFromCodedStream(&coded_input);
+  //Once the embedded message has been parsed, PopLimit() is called to undo the limit
+  coded_input.PopLimit(msgLimit);
+  */
+  payload.ParseFromArray(buffer, size);
+
+  std::string a;
+  google::protobuf::TextFormat::PrintToString(payload, &a);
+  std::cout << a << std::endl;
+  if (payload.has_gsm()) {
+    switch (payload.gsm().action_type()) {
+      case sensors_packet_GSMPayload_GSMActionType_RECEIVE_CALL:
+        amodem_add_inbound_call(modem, payload.gsm().phone_number().c_str());
+        break;
+      case sensors_packet_GSMPayload_GSMActionType_ACCEPT_CALL:
+      case sensors_packet_GSMPayload_GSMActionType_CANCEL_CALL:
+      case sensors_packet_GSMPayload_GSMActionType_HOLD_CALL:
+        amodem_disconnect_call(modem, payload.gsm().phone_number().c_str());
+        break;
+      case sensors_packet_GSMPayload_GSMActionType_RECEIVE_SMS:
+          {
+          SmsAddressRec sender;
+          char* phone_number = (char*) payload.gsm().phone_number().c_str();
+          if (sms_address_from_str(&sender, phone_number, strlen(phone_number)) < 0) {
+            return;
+          }
+          char* sms_text = (char*) payload.gsm().sms_text().c_str();
+          int textlen = strlen(sms_text);
+          textlen = sms_utf8_from_message_str(sms_text, textlen, (unsigned char*) sms_text, textlen);
+          if (textlen < 0) {
+            return;
+          }
+
+          SmsPDU* pdus = smspdu_create_deliver_utf8((const unsigned char*) sms_text, textlen, &sender, NULL);
+          int nn;
+          for (nn = 0; pdus[nn] != NULL; nn++) {
+            amodem_receive_sms(modem, pdus[nn]);
+          }
+          smspdu_free_list(pdus);
+          break;
+          }
+      case sensors_packet_GSMPayload_GSMActionType_SET_SIGNAL:
+        amodem_set_signal_strength(modem, payload.gsm().signal_strength());
+        break;
+      case sensors_packet_GSMPayload_GSMActionType_SET_NETWORK_TYPE:
+        amodem_set_data_network_type(modem, android_parse_network_type(payload.gsm().network().c_str()));
+        break;
+      case sensors_packet_GSMPayload_GSMActionType_SET_NETWORK_REGISTRATION:
+        ARegistrationState reg = A_REGISTRATION_HOME;
+        char* type = (char*) payload.gsm().registration().c_str();
+        if (!strcmp("home", type))
+          reg = A_REGISTRATION_HOME;
+        else if (!strcmp("roaming", type))
+          reg = A_REGISTRATION_ROAMING;
+        else if (!strcmp("searching", type))
+          reg = A_REGISTRATION_SEARCHING;
+        else if (!strcmp("none", type))
+          reg = A_REGISTRATION_UNREGISTERED;
+        else if (!strcmp("denied", type))
+          reg = A_REGISTRATION_DENIED;
+        amodem_set_data_registration(modem, reg);
+        break;
+    }
+    
+  }else{
+  }
+}
+
+// XXX
+
 
 typedef struct {
     SysChannel   channel;
@@ -36,7 +149,7 @@ typedef struct {
 static Client
 client_alloc( SysChannel  channel )
 {
-    Client  client = calloc( sizeof(*client), 1 );
+    Client  client = (Client) calloc( sizeof(*client), 1 );
 
     client->channel = channel;
     return client;
@@ -99,7 +212,7 @@ cmd_client_handle_line( Client  client, const char*  cmd )
     bzero(command, 10);
     char* p, *args;
 
-    p = strchr((const char*) cmd, ' ');
+    p = (char*) strchr((const char*) cmd, ' ');
     args = p+1;
 
     SmsPDU* pdus;
@@ -167,7 +280,7 @@ cmd_client_handle_line( Client  client, const char*  cmd )
 static void
 client_handler( void* _client, int  events )
 {
-    Client  client = _client;
+    Client  client = (Client) _client;
 
     if (events & SYS_EVENT_READ) {
         int  ret;
@@ -239,7 +352,7 @@ client_append( Client  client, const char*  str, int len )
 static void
 accept_func( void*  _server, int  events )
 {
-    SysChannel  server  = _server;
+    SysChannel  server  = (SysChannel) _server;
     SysChannel  handler;
     Client      client;
 
@@ -256,28 +369,21 @@ accept_func( void*  _server, int  events )
 static void
 cmd_client_handler( void* _client, int  events )
 {
-    Client  client = _client;
+    Client  client = (Client) _client;
 
     if (events & SYS_EVENT_READ) {
-        int  ret;
+        int byte_count;
+        char buffer[4] = {0, 0, 0, 0};
+        int ret;
         /* read into buffer, one character at a time */
-        ret = sys_channel_read( client->channel, client->in_buff + client->in_pos, 1 );
-        if (ret != 1) {
+        if ((byte_count = recv(channel_get_fd(client->channel), buffer, 4, MSG_WAITALL)) <= 0) {
             fprintf(stderr, "client %p could not read byte, result = %d, error: %s\n",
                     client, ret, strerror(errno) );
             goto ExitCmdClient;
         }
-        if (client->in_buff[client->in_pos] == '\r' ||
-            client->in_buff[client->in_pos] == '\n' ) {
-            const char*  cmd = client->in_buff;
-            client->in_buff[client->in_pos] = 0;
-
-            if (client->in_pos > 0) {
-                cmd_client_handle_line( client, cmd );
-                client->in_pos = 0;
-            }
-        } else
-            client->in_pos += 1;
+        read_body(channel_get_fd(client->channel), read_header(buffer));
+        client->in_buff[0] = 0;
+        client->in_pos = 0;
     }
 
     if (events & SYS_EVENT_WRITE) {
@@ -308,7 +414,7 @@ ExitCmdClient:
 static void
 cmd_accept_func( void*  _server, int  events )
 {
-    SysChannel  server  = _server;
+    SysChannel  server  = (SysChannel) _server;
     SysChannel  handler;
     Client      client;
 
