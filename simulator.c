@@ -146,6 +146,22 @@ cmd_client_handle_line( Client  client, const char*  cmd )
         signal = 3;
       amodem_set_signal_strength(modem, signal);
     }
+    else if (!strncmp("REG", cmd, 3))
+    {
+      const char* type = p+1;
+      ARegistrationState reg = A_REGISTRATION_HOME;
+      if (!strcmp("home", type))
+        reg = A_REGISTRATION_HOME;
+      else if (!strcmp("roaming", type))
+        reg = A_REGISTRATION_ROAMING;
+      else if (!strcmp("searching", type))
+        reg = A_REGISTRATION_SEARCHING;
+      else if (!strcmp("none", type))
+        reg = A_REGISTRATION_UNREGISTERED;
+      else if (!strcmp("denied", type))
+        reg = A_REGISTRATION_DENIED;
+      amodem_set_data_registration(modem, reg);
+    }
 }
 
 static void
