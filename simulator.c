@@ -17,13 +17,9 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <iostream>
-
-
 
 // Protobuff
 #include <google/protobuf/io/coded_stream.h>
-#include <google/protobuf/text_format.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include "sensors_packet.pb.h"
 
@@ -71,9 +67,6 @@ void read_body(int csock, google::protobuf::uint32 size)
   */
   payload.ParseFromArray(buffer, size);
 
-  std::string a;
-  google::protobuf::TextFormat::PrintToString(payload, &a);
-  std::cout << a << std::endl;
   if (payload.has_gsm()) {
     switch (payload.gsm().action_type()) {
       case sensors_packet_GSMPayload_GSMActionType_RECEIVE_CALL:
