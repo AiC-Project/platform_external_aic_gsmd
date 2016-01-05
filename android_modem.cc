@@ -19,8 +19,19 @@
 #include <time.h>
 #include <assert.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+
+
 #include "sms.h"
 #include "remote_call.h"
 
@@ -1984,11 +1995,33 @@ BadCommand:
     return "ERROR: BAD COMMAND";
 }
 
+void get_ip(char* addr)
+{
+  int fd;
+  struct ifreq ifr;
+
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+  ifr.ifr_addr.sa_family = AF_INET;
+
+  strncpy(ifr.ifr_name, "eth2", IFNAMSIZ-1);
+
+  ioctl(fd, SIOCGIFADDR, &ifr);
+
+  close(fd);
+
+  strcpy(addr, inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+}
+
 static const char*
 handleQueryPDPContext( const char* cmd, AModem modem )
 {
+    char ip[16];
     int  nn;
+    memset(ip, 0, 16);
+    get_ip(ip);
     amodem_begin_line(modem);
+    D("IP found for interface %s: %s", NETWORK_INTERFACE, ip);
     for (nn = 0; nn < MAX_DATA_CONTEXTS; nn++) {
         ADataContext  data = modem->data_contexts + nn;
         if (!data->active)
@@ -2000,7 +2033,7 @@ handleQueryPDPContext( const char* cmd, AModem modem )
                          /* Note: For now, hard-code the IP address of our
                           *       network interface
                           */
-                         data->type == A_DATA_IP ? "10.0.2.15" : "");
+                         data->type == A_DATA_IP ? ip : "");
     }
     return amodem_end_line(modem);
 }
