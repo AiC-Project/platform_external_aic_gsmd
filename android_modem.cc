@@ -33,6 +33,8 @@
 #define  CALL_DELAY_DIAL   1000
 #define  CALL_DELAY_ALERT  1000
 
+#define NETWORK_INTERFACE "eth2"
+
 /* the Android GSM stack checks that the operator's name has changed
  * when roaming is on. If not, it will not update the Roaming status icon
  *
@@ -2004,10 +2006,22 @@ handleQueryPDPContext( const char* cmd, AModem modem )
 }
 
 static const char*
-handleEndPDPContext( const char*  cmd, AModem  modem )
+handleEnablePDPContext( const char*  cmd, AModem  modem )
 {
     /* XXX: TODO: handle PDP start appropriately */
-    int status = system("netcfg eth2 down");
+    int status = system("netcfg "NETWORK_INTERFACE" up");
+    D("netcfg up returned %d", status);
+    return NULL;
+}
+
+
+static const char*
+handleDisablePDPContext( const char*  cmd, AModem  modem )
+{
+    /* XXX: TODO: handle PDP deactivate appropriately */
+    int status = 0; //system("netcfg "NETWORK_INTERFACE" down");
+    D("netcfg down returned %d", status);
+    memset(modem->data_contexts, 0, sizeof(modem->data_contexts));
     return NULL;
 }
 
@@ -2016,7 +2030,8 @@ static const char*
 handleStartPDPContext( const char*  cmd, AModem  modem )
 {
     /* XXX: TODO: handle PDP start appropriately */
-    int status = system("netcfg eth2 dhcp");
+    int status = system("netcfg "NETWORK_INTERFACE" dhcp");
+    D("netcfg dhcp returned %d", status);
     return NULL;
 }
 
@@ -2390,8 +2405,8 @@ static const struct {
     { "+CGQREQ=1", NULL, NULL },
     { "+CGQMIN=1", NULL, NULL },
     { "+CGEREP=1,0", NULL, NULL },
-    { "+CGACT=1,0", NULL, NULL },
-    { "+CGACT=0,0", NULL, handleEndPDPContext },
+    { "+CGACT=1,0", NULL, handleEnablePDPContext},
+    { "+CGACT=0,0", NULL, handleDisablePDPContext},
     { "D*99***1#", NULL, handleStartPDPContext },
 
     /* see requestDial() */
