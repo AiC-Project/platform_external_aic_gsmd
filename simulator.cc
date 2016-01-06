@@ -39,91 +39,88 @@ google::protobuf::uint32 read_header(char *buf)
   return size;
 }
 
-
-
 void read_body(int csock, google::protobuf::uint32 size)
 {
-  int bytecount;
-  sensors_packet payload;
-  char buffer [size];//size of the payload and hdr
-  //Read the entire buffer including the hdr
-  if((bytecount = recv(csock, (void *)buffer, size, MSG_WAITALL))== -1){
-    fprintf(stderr, "Error receiving data %d\n", errno);
-  }
-  /*
-  //Assign ArrayInputStream with enough memory
-  google::protobuf::io::ArrayInputStream ais(buffer,size+4);
-  google::protobuf::io::CodedInputStream coded_input(&ais);
-  //Read an unsigned integer with Varint encoding, truncating to 32 bits.
-  coded_input.ReadVarint32(&size);
-  //After the message's length is read, PushLimit() is used to prevent the CodedInputStream
-  //from reading beyond that length.Limits are used when parsing length-delimited
-  //embedded messages
-  google::protobuf::io::CodedInputStream::Limit msgLimit = coded_input.PushLimit(size);
-  //De-Serialize
-  payload.ParseFromCodedStream(&coded_input);
-  //Once the embedded message has been parsed, PopLimit() is called to undo the limit
-  coded_input.PopLimit(msgLimit);
-  */
-  payload.ParseFromArray(buffer, size);
-
-  if (payload.has_gsm()) {
-    switch (payload.gsm().action_type()) {
-      case sensors_packet_GSMPayload_GSMActionType_RECEIVE_CALL:
-        amodem_add_inbound_call(modem, payload.gsm().phone_number().c_str());
-        break;
-      case sensors_packet_GSMPayload_GSMActionType_ACCEPT_CALL:
-      case sensors_packet_GSMPayload_GSMActionType_CANCEL_CALL:
-      case sensors_packet_GSMPayload_GSMActionType_HOLD_CALL:
-        amodem_disconnect_call(modem, payload.gsm().phone_number().c_str());
-        break;
-      case sensors_packet_GSMPayload_GSMActionType_RECEIVE_SMS:
-          {
-          SmsAddressRec sender;
-          char* phone_number = (char*) payload.gsm().phone_number().c_str();
-          if (sms_address_from_str(&sender, phone_number, strlen(phone_number)) < 0) {
-            return;
-          }
-          char* sms_text = (char*) payload.gsm().sms_text().c_str();
-          int textlen = strlen(sms_text);
-          textlen = sms_utf8_from_message_str(sms_text, textlen, (unsigned char*) sms_text, textlen);
-          if (textlen < 0) {
-            return;
-          }
-
-          SmsPDU* pdus = smspdu_create_deliver_utf8((const unsigned char*) sms_text, textlen, &sender, NULL);
-          int nn;
-          for (nn = 0; pdus[nn] != NULL; nn++) {
-            amodem_receive_sms(modem, pdus[nn]);
-          }
-          smspdu_free_list(pdus);
-          break;
-          }
-      case sensors_packet_GSMPayload_GSMActionType_SET_SIGNAL:
-        amodem_set_signal_strength(modem, payload.gsm().signal_strength());
-        break;
-      case sensors_packet_GSMPayload_GSMActionType_SET_NETWORK_TYPE:
-        amodem_set_data_network_type(modem, android_parse_network_type(payload.gsm().network().c_str()));
-        break;
-      case sensors_packet_GSMPayload_GSMActionType_SET_NETWORK_REGISTRATION:
-        ARegistrationState reg = A_REGISTRATION_HOME;
-        char* type = (char*) payload.gsm().registration().c_str();
-        if (!strcmp("home", type))
-          reg = A_REGISTRATION_HOME;
-        else if (!strcmp("roaming", type))
-          reg = A_REGISTRATION_ROAMING;
-        else if (!strcmp("searching", type))
-          reg = A_REGISTRATION_SEARCHING;
-        else if (!strcmp("none", type))
-          reg = A_REGISTRATION_UNREGISTERED;
-        else if (!strcmp("denied", type))
-          reg = A_REGISTRATION_DENIED;
-        amodem_set_data_registration(modem, reg);
-        break;
+    int bytecount;
+    sensors_packet payload;
+    char buffer [size];//size of the payload and hdr
+    //Read the entire buffer including the hdr
+    if((bytecount = recv(csock, (void *)buffer, size, MSG_WAITALL))== -1){
+        fprintf(stderr, "Error receiving data %d\n", errno);
     }
-    
-  }else{
-  }
+    /*
+    //Assign ArrayInputStream with enough memory
+    google::protobuf::io::ArrayInputStream ais(buffer,size+4);
+    google::protobuf::io::CodedInputStream coded_input(&ais);
+    //Read an unsigned integer with Varint encoding, truncating to 32 bits.
+    coded_input.ReadVarint32(&size);
+    //After the message's length is read, PushLimit() is used to prevent the CodedInputStream
+    //from reading beyond that length.Limits are used when parsing length-delimited
+    //embedded messages
+    google::protobuf::io::CodedInputStream::Limit msgLimit = coded_input.PushLimit(size);
+    //De-Serialize
+    payload.ParseFromCodedStream(&coded_input);
+    //Once the embedded message has been parsed, PopLimit() is called to undo the limit
+    coded_input.PopLimit(msgLimit);
+    */
+    payload.ParseFromArray(buffer, size);
+
+    if (payload.has_gsm()) {
+        switch (payload.gsm().action_type()) {
+            case sensors_packet_GSMPayload_GSMActionType_RECEIVE_CALL:
+                amodem_add_inbound_call(modem, payload.gsm().phone_number().c_str());
+                break;
+            case sensors_packet_GSMPayload_GSMActionType_ACCEPT_CALL:
+            case sensors_packet_GSMPayload_GSMActionType_CANCEL_CALL:
+            case sensors_packet_GSMPayload_GSMActionType_HOLD_CALL:
+                amodem_disconnect_call(modem, payload.gsm().phone_number().c_str());
+                break;
+            case sensors_packet_GSMPayload_GSMActionType_RECEIVE_SMS:
+                {
+                    SmsAddressRec sender;
+                    char* phone_number = (char*) payload.gsm().phone_number().c_str();
+                    if (sms_address_from_str(&sender, phone_number, strlen(phone_number)) < 0) {
+                        return;
+                    }
+                    char* sms_text = (char*) payload.gsm().sms_text().c_str();
+                    int textlen = strlen(sms_text);
+                    textlen = sms_utf8_from_message_str(sms_text, textlen, (unsigned char*) sms_text, textlen);
+                    if (textlen < 0) {
+                        return;
+                    }
+
+                    SmsPDU* pdus = smspdu_create_deliver_utf8((const unsigned char*) sms_text, textlen, &sender, NULL);
+                    int nn;
+                    for (nn = 0; pdus[nn] != NULL; nn++) {
+                        amodem_receive_sms(modem, pdus[nn]);
+                    }
+                    smspdu_free_list(pdus);
+                    break;
+                }
+            case sensors_packet_GSMPayload_GSMActionType_SET_SIGNAL:
+                amodem_set_signal_strength(modem, payload.gsm().signal_strength());
+                break;
+            case sensors_packet_GSMPayload_GSMActionType_SET_NETWORK_TYPE:
+                amodem_set_data_network_type(modem, android_parse_network_type(payload.gsm().network().c_str()));
+                break;
+            case sensors_packet_GSMPayload_GSMActionType_SET_NETWORK_REGISTRATION:
+                ARegistrationState reg = A_REGISTRATION_HOME;
+                char* type = (char*) payload.gsm().registration().c_str();
+                if (!strcmp("home", type))
+                    reg = A_REGISTRATION_HOME;
+                else if (!strcmp("roaming", type))
+                    reg = A_REGISTRATION_ROAMING;
+                else if (!strcmp("searching", type))
+                    reg = A_REGISTRATION_SEARCHING;
+                else if (!strcmp("none", type))
+                    reg = A_REGISTRATION_UNREGISTERED;
+                else if (!strcmp("denied", type))
+                    reg = A_REGISTRATION_DENIED;
+                amodem_set_data_registration(modem, reg);
+                break;
+        }
+    }else{
+    }
 }
 
 // XXX

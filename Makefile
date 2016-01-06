@@ -12,7 +12,7 @@ scan_all:
 	scan-build $(SCANEXTRA) $(CC) $(CFLAGS) $(SOURCES) `pkg-config --cflags --libs protobuf`
 
 update:
-	rm sensors_packet.pb.*
+	rm -f sensors_packet.pb.*
 	cp -rvf *.cc *.h *.mk *.proto ~/aic/work/vm/device/aicVM/goby/gsmd/
 proto:
 	protoc --cpp_out=. sensors_packet.proto
