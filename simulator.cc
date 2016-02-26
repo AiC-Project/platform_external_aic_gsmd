@@ -11,6 +11,7 @@
 */
 
 #include "android_modem.h"
+#include "log.h"
 #include "sysdeps.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,30 +75,40 @@ void read_body(int csock, google::protobuf::uint32 size)
     payload.ParseFromArray(buffer, size);
 
     if (payload.has_gsm()) {
+        char* phone_number = NULL;
+        D("Received protobuf with GSM payload");
         switch (payload.gsm().action_type()) {
             case sensors_packet_GSMPayload_GSMActionType_RECEIVE_CALL:
-                amodem_add_inbound_call(modem, payload.gsm().phone_number().c_str());
+                phone_number = (char*) payload.gsm().phone_number().c_str();
+                D("Faking an inbound call from %s", phone_number);
+                amodem_add_inbound_call(modem, phone_number);
                 break;
             case sensors_packet_GSMPayload_GSMActionType_ACCEPT_CALL:
             case sensors_packet_GSMPayload_GSMActionType_CANCEL_CALL:
             case sensors_packet_GSMPayload_GSMActionType_HOLD_CALL:
-                amodem_disconnect_call(modem, payload.gsm().phone_number().c_str());
+                phone_number = (char*) payload.gsm().phone_number().c_str();
+                D("Stopping an inbound call from %s", phone_number);
+                amodem_disconnect_call(modem, phone_number);
                 break;
             case sensors_packet_GSMPayload_GSMActionType_RECEIVE_SMS:
                 {
                     SmsAddressRec sender;
-                    char* phone_number = (char*) payload.gsm().phone_number().c_str();
+                    phone_number = (char*) payload.gsm().phone_number().c_str();
                     if (sms_address_from_str(&sender, phone_number, strlen(phone_number)) < 0) {
+                        D("Failed to create phone number from string: %s", phone_number);
                         return;
                     }
                     char* sms_text = (char*) payload.gsm().sms_text().c_str();
                     int textlen = strlen(sms_text);
                     textlen = sms_utf8_from_message_str(sms_text, textlen, (unsigned char*) sms_text, textlen);
                     if (textlen < 0) {
+                        D("No text to send as a fake SMS");
                         return;
                     }
 
+                    D("Creating fake SMS to receive from %s: \"%s\"", phone_number, sms_text);
                     SmsPDU* pdus = smspdu_create_deliver_utf8((const unsigned char*) sms_text, textlen, &sender, NULL);
+
                     int nn;
                     for (nn = 0; pdus[nn] != NULL; nn++) {
                         amodem_receive_sms(modem, pdus[nn]);
@@ -106,9 +117,11 @@ void read_body(int csock, google::protobuf::uint32 size)
                     break;
                 }
             case sensors_packet_GSMPayload_GSMActionType_SET_SIGNAL:
+                D("Setting signal strength to %d", payload.gsm().signal_strength());
                 amodem_set_signal_strength(modem, payload.gsm().signal_strength());
                 break;
             case sensors_packet_GSMPayload_GSMActionType_SET_NETWORK_TYPE:
+                D("Setting network type to %s", payload.gsm().network().c_str());
                 amodem_set_data_network_type(modem, android_parse_network_type(payload.gsm().network().c_str()));
                 break;
             case sensors_packet_GSMPayload_GSMActionType_SET_NETWORK_REGISTRATION:
@@ -124,6 +137,7 @@ void read_body(int csock, google::protobuf::uint32 size)
                     reg = A_REGISTRATION_UNREGISTERED;
                 else if (!strcmp("denied", type))
                     reg = A_REGISTRATION_DENIED;
+                D("Setting network registration to %s (%d)", type, reg);
                 amodem_set_data_registration(modem, reg);
                 break;
         }
