@@ -43,12 +43,21 @@ void read_body(int csock, google::protobuf::uint32 size)
 {
     int bytecount;
     sensors_packet payload;
-    char buffer [size];//size of the payload and hdr
+    char* buffer = new char[size+4]; // size of the payload and hdr
     //Read the entire buffer including the hdr
-    if((bytecount = recv(csock, (void *)buffer, size, MSG_WAITALL))== -1){
+    if((bytecount = recv(csock, (void *)buffer, size+4, MSG_WAITALL))== -1)
+    {
         fprintf(stderr, "Error receiving data %d\n", errno);
+        free(buffer);
+        return;
     }
-    /*
+    else if (bytecount != size+4)
+    {
+        fprintf(stderr, "Error receiving data, expected %d, received %d bytes\n",
+                size, bytecount);
+        free(buffer);
+        return;
+    }
     //Assign ArrayInputStream with enough memory
     google::protobuf::io::ArrayInputStream ais(buffer,size+4);
     google::protobuf::io::CodedInputStream coded_input(&ais);
@@ -62,7 +71,6 @@ void read_body(int csock, google::protobuf::uint32 size)
     payload.ParseFromCodedStream(&coded_input);
     //Once the embedded message has been parsed, PopLimit() is called to undo the limit
     coded_input.PopLimit(msgLimit);
-    */
     payload.ParseFromArray(buffer, size);
 
     if (payload.has_gsm()) {
@@ -119,8 +127,8 @@ void read_body(int csock, google::protobuf::uint32 size)
                 amodem_set_data_registration(modem, reg);
                 break;
         }
-    }else{
     }
+    free(buffer);
 }
 
 // XXX
@@ -365,13 +373,26 @@ cmd_client_handler( void* _client, int  events )
         int byte_count;
         char buffer[4] = {0, 0, 0, 0};
         int ret;
-        /* read into buffer, one character at a time */
-        if ((byte_count = recv(channel_get_fd(client->channel), buffer, 4, MSG_WAITALL)) <= 0) {
+        if ((byte_count = recv(channel_get_fd(client->channel), buffer, 4, MSG_PEEK)) <= 0)
+        {
             fprintf(stderr, "client %p could not read byte, result = %d, error: %s\n",
                     client, ret, strerror(errno) );
             goto ExitCmdClient;
         }
-        read_body(channel_get_fd(client->channel), read_header(buffer));
+        else if (byte_count < 4)
+        {
+            fprintf(stderr, "client %p could not read framing, result = %d, read: %d\n",
+                    client, ret, byte_count );
+            goto ExitCmdClient;
+        }
+        google::protobuf::uint32 framing_size = read_header(buffer);
+        if (framing_size > 4*1024*1024)
+        {
+            fprintf(stderr, "client %p sent more than 4MiB in the payload (%d)\n",
+                    client, framing_size);
+            goto ExitCmdClient;
+        }
+        read_body(channel_get_fd(client->channel), framing_size);
         client->in_buff[0] = 0;
         client->in_pos = 0;
     }
