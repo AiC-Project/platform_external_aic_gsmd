@@ -18,6 +18,9 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <netinet/tcp.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 // Protobuff
 #include <google/protobuf/io/coded_stream.h>
@@ -45,17 +48,18 @@ void read_body(int csock, google::protobuf::uint32 size)
     int bytecount;
     sensors_packet payload;
     char* buffer = new char[size+4]; // size of the payload and hdr
+    bzero(buffer, size+4);
     //Read the entire buffer including the hdr
     if((bytecount = recv(csock, (void *)buffer, size+4, MSG_WAITALL))== -1)
     {
-        fprintf(stderr, "Error receiving data %d\n", errno);
+        D("Error receiving data %d", errno);
         free(buffer);
         return;
     }
     else if (bytecount != size+4)
     {
-        fprintf(stderr, "Error receiving data, expected %d, received %d bytes\n",
-                size, bytecount);
+        D("Error receiving data, expected %d, received %d bytes",
+          size, bytecount);
         free(buffer);
         return;
     }
@@ -72,7 +76,6 @@ void read_body(int csock, google::protobuf::uint32 size)
     payload.ParseFromCodedStream(&coded_input);
     //Once the embedded message has been parsed, PopLimit() is called to undo the limit
     coded_input.PopLimit(msgLimit);
-    payload.ParseFromArray(buffer, size);
 
     if (payload.has_gsm()) {
         char* phone_number = NULL;
@@ -299,7 +302,7 @@ client_handler( void* _client, int  events )
         /* read into buffer, one character at a time */
         ret = sys_channel_read( client->channel, client->in_buff + client->in_pos, 1 );
         if (ret != 1) {
-            fprintf(stderr, "client %p could not read byte, result = %d, error: %s\n",
+            D("client %p could not read byte, result = %d, error: %s",
                     client, ret, strerror(errno) );
             goto ExitClient;
         }
@@ -321,7 +324,7 @@ client_handler( void* _client, int  events )
         /* write from output buffer, one char at a time */
         ret = sys_channel_write( client->channel, client->out_buff + client->out_pos, 1 );
         if (ret != 1) {
-            fprintf(stderr, "client %p could not write byte, result = %d, error: %s\n",
+            D("client %p could not write byte, result = %d, error: %s",
                     client, ret, strerror(errno) );
             goto ExitClient;
         }
@@ -336,7 +339,7 @@ client_handler( void* _client, int  events )
     return;
 
 ExitClient:
-    printf( "client %p exiting\n", client );
+    D( "client %p exiting", client );
     client_free( client );
 }
 
@@ -368,10 +371,10 @@ accept_func( void*  _server, int  events )
     SysChannel  handler;
     Client      client;
 
-    printf( "connection accepted for server channel, getting handler socket\n" );
+    D("connection accepted for server channel, getting handler socket");
     handler = sys_channel_create_tcp_handler( server );
     client  = client_alloc( handler );
-    printf( "got one. created client %p\n", client );
+    D("got one. created client %p", client);
 
     events=events;
     sys_channel_on( handler, SYS_EVENT_READ, client_handler, client );
@@ -389,21 +392,21 @@ cmd_client_handler( void* _client, int  events )
         int ret;
         if ((byte_count = recv(channel_get_fd(client->channel), buffer, 4, MSG_PEEK)) <= 0)
         {
-            fprintf(stderr, "client %p could not read byte, result = %d, error: %s\n",
-                    client, ret, strerror(errno) );
+            D("Cmd client %p could not read byte, result = %d, error: %s",
+              client, byte_count, strerror(errno) );
             goto ExitCmdClient;
         }
         else if (byte_count < 4)
         {
-            fprintf(stderr, "client %p could not read framing, result = %d, read: %d\n",
-                    client, ret, byte_count );
+            D("Cmd client %p could not read framing, result = %d, read: %d",
+               client, ret, byte_count );
             goto ExitCmdClient;
         }
         google::protobuf::uint32 framing_size = read_header(buffer);
         if (framing_size > 4*1024*1024)
         {
-            fprintf(stderr, "client %p sent more than 4MiB in the payload (%d)\n",
-                    client, framing_size);
+            D("Cmd client %p sent more than 4MiB in the payload (%d)",
+              client, framing_size);
             goto ExitCmdClient;
         }
         read_body(channel_get_fd(client->channel), framing_size);
@@ -416,8 +419,8 @@ cmd_client_handler( void* _client, int  events )
         /* write from output buffer, one char at a time */
         ret = sys_channel_write( client->channel, client->out_buff + client->out_pos, 1 );
         if (ret != 1) {
-            fprintf(stderr, "client %p could not write byte, result = %d, error: %s\n",
-                    client, ret, strerror(errno) );
+            D("client %p could not write byte, result = %d, error: %s",
+               client, ret, strerror(errno) );
             goto ExitCmdClient;
         }
         client->out_pos += 1;
@@ -431,7 +434,7 @@ cmd_client_handler( void* _client, int  events )
     return;
 
 ExitCmdClient:
-    printf( "client %p exiting\n", client );
+    D( "client %p exiting\n", client );
     client_free( client );
 }
 
@@ -443,10 +446,10 @@ cmd_accept_func( void*  _server, int  events )
     SysChannel  handler;
     Client      client;
 
-    printf( "connection accepted for server channel, getting handler socket\n" );
+    D("connection accepted for server channel, getting handler socket");
     handler = sys_channel_create_tcp_handler( server );
     client  = client_alloc( handler );
-    printf( "got one. created client %p\n", client );
+    D("got one. created client %p", client);
 
     events=events;
     sys_channel_on( handler, SYS_EVENT_READ, cmd_client_handler, client );
@@ -455,7 +458,7 @@ cmd_accept_func( void*  _server, int  events )
 
 
 void func(void* opaque, const char* truc) {
-  printf("Unsol: %p %s", opaque, truc);
+  D("Unsol: %p %s", opaque, truc);
   sys_channel_write(s_handler, truc, strlen(truc));
 }
 
@@ -470,13 +473,15 @@ int  main( void )
 
     server = sys_channel_create_tcp_server( port );
     cmd_server = sys_channel_create_tcp_server( port  + 1);
-    printf( "GSM simulator listening on local port %d, %d %p %p\n", port, port + 1, server, cmd_server);
+    int opt_nodelay;
+    setsockopt(channel_get_fd(cmd_server), IPPROTO_TCP, TCP_NODELAY, &opt_nodelay, sizeof(opt_nodelay));
+    D( "GSM simulator listening on local port %d, %d %p %p", port, port + 1, server, cmd_server);
 
     modem = amodem_create( 1, func, server);
 
     sys_channel_on( server, SYS_EVENT_READ, accept_func, server );
     sys_channel_on( cmd_server, SYS_EVENT_READ, cmd_accept_func, cmd_server );
     sys_main_loop();
-    printf( "GSM simulator exiting\n" );
+    D( "GSM simulator exiting" );
     return 0;
 }
