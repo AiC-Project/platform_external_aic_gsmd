@@ -87,11 +87,34 @@ void read_body(int csock, google::protobuf::uint32 size)
                 amodem_add_inbound_call(modem, phone_number);
                 break;
             case sensors_packet_GSMPayload_GSMActionType_ACCEPT_CALL:
-            case sensors_packet_GSMPayload_GSMActionType_CANCEL_CALL:
-            case sensors_packet_GSMPayload_GSMActionType_HOLD_CALL:
                 phone_number = (char*) payload.gsm().phone_number().c_str();
+                if (amodem_find_call_by_number(modem, phone_number) == NULL)
+                {
+                    D("No call from %s", phone_number);
+                    return;
+                }
+                D("Accepting an inbound call from %s", phone_number);
+                amodem_update_call(modem, phone_number, A_CALL_ACTIVE);
+                break;
+            case sensors_packet_GSMPayload_GSMActionType_CANCEL_CALL:
+                phone_number = (char*) payload.gsm().phone_number().c_str();
+                if (amodem_find_call_by_number(modem, phone_number) == NULL)
+                {
+                    D("No call from %s", phone_number);
+                    return;
+                }
                 D("Stopping an inbound call from %s", phone_number);
                 amodem_disconnect_call(modem, phone_number);
+                break;
+            case sensors_packet_GSMPayload_GSMActionType_HOLD_CALL:
+                phone_number = (char*) payload.gsm().phone_number().c_str();
+                if (amodem_find_call_by_number(modem, phone_number) == NULL)
+                {
+                    D("No call from %s", phone_number);
+                    return;
+                }
+                D("Holding an inbound call from %s", phone_number);
+                amodem_update_call(modem, phone_number, A_CALL_HELD);
                 break;
             case sensors_packet_GSMPayload_GSMActionType_RECEIVE_SMS:
                 {
