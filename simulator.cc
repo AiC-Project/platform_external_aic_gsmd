@@ -126,12 +126,10 @@ void read_body(int csock, google::protobuf::uint32 size)
                     }
                     char* sms_text = (char*) payload.gsm().sms_text().c_str();
                     int textlen = strlen(sms_text);
-                    textlen = sms_utf8_from_message_str(sms_text, textlen, (unsigned char*) sms_text, textlen);
                     if (textlen < 0) {
                         D("No text to send as a fake SMS");
                         return;
                     }
-
                     D("Creating fake SMS to receive from %s: \"%s\"", phone_number, sms_text);
                     SmsPDU* pdus = smspdu_create_deliver_utf8((const unsigned char*) sms_text, textlen, &sender, NULL);
 
@@ -170,8 +168,6 @@ void read_body(int csock, google::protobuf::uint32 size)
     }
     free(buffer);
 }
-
-// XXX
 
 
 typedef struct {
