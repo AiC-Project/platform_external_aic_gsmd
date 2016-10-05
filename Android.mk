@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_CPP_EXTENSION := .cc
-LOCAL_PBUF_INTERMEDIATES := $(call intermediates-dir-for,SHARED_LIBRARIES,libccpsensors_packet_static,,)/proto/external/aic/libaicd/
+LOCAL_PBUF_INTERMEDIATES := $(call intermediates-dir-for,STATIC_LIBRARIES,libcppsensors_packet_static,,)/proto/external/aic/libaicd/
 LOCAL_C_INCLUDES := bionic \
 					external/aic/libaicd \
 					external/protobuf/src \
@@ -22,7 +22,7 @@ LOCAL_SRC_FILES := simulator.cc sim_card.cc \
 
 LOCAL_CFLAGS := -lpthread -ldl -O2 -DGOOGLE_PROTOBUF_NO_RTTI
 
-LOCAL_STATIC_LIBRARIES := liblog libcutils libstlport_static libcppsensors_packet_static libprotobuf-cpp-2.3.0-full
+LOCAL_STATIC_LIBRARIES := liblog libcutils libcppsensors_packet_static libstlport_static libprotobuf-cpp-2.3.0-full
 LOCAL_MODULE := gsmd
 LOCAL_MODULE_TAGS := optional
 
